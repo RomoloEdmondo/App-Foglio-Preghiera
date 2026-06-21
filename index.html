@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Foglio di Preghiera</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Calendario mensile</p>
+        <h1>Foglio di preghiera</h1>
+      </div>
+
+      <div class="toolbar" aria-label="Controlli del foglio">
+        <label>
+          <span>Mese</span>
+          <select id="monthSelect"></select>
+        </label>
+        <label>
+          <span>Anno</span>
+          <input id="yearInput" type="number" min="1900" max="2200" step="1" />
+        </label>
+        <button id="todayButton" type="button">Oggi</button>
+        <button id="printButton" type="button">PDF</button>
+        <button id="imageButton" type="button">Immagine</button>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="sheet" id="sheet" aria-label="Foglio mensile di preghiera">
+        <header class="sheet-page-header">
+          <img id="churchLogo" src="assets/logo-italiano.jpeg" alt="Chiesa Evangelica Ruchheim" />
+          <h2 id="sheetTitle">Soggetti e calendario di preghiera</h2>
+        </header>
+
+        <div class="reading-bar">
+          <div class="reading-title" contenteditable="true" data-field="readingHeading">Leggi la Bibbia in 1 anno</div>
+        </div>
+
+        <div class="table-wrap">
+          <table class="prayer-table">
+            <colgroup>
+              <col class="date-col" />
+              <col class="reading-col" />
+              <col class="subject-col" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th>Giorno</th>
+                <th>Lettura</th>
+                <th>Soggetto di preghiera</th>
+              </tr>
+            </thead>
+            <tbody id="daysBody"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
