@@ -390,14 +390,13 @@ h1 {
   align-items: center;
   justify-content: center;
   gap: 18px;
-  padding: 22px 28px 20px;
   background: #fff;
 }
 
 .sheet-page-header img {
   display: block;
   width: min(132px, 22vw);
-  max-height: 86px;
+  max-height: 123px;
   object-fit: contain;
   flex: 0 0 auto;
 }

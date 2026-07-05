@@ -23,6 +23,17 @@ const weekdayNames = [
   "Sabato",
 ];
 
+const EXPORT_PAGE_COUNT = 2;
+const EXPORT_PAGE_WIDTH = 1800;
+const EXPORT_PAGE_PADDING = 32;
+const EXPORT_PAGE_HEADER_HEIGHT = 118;
+const EXPORT_TABLE_HEADER_HEIGHT = 42;
+const EXPORT_PAGE_RATIO = (297 - 12) / (210 - 12);
+const EXPORT_PAGE_HEIGHT = Math.round(EXPORT_PAGE_WIDTH / EXPORT_PAGE_RATIO);
+const PDF_EXPORT_SCALE = 1.2;
+const PDF_IMAGE_QUALITY = 0.82;
+const MIN_EXPORT_TEXT_SCALE = 0.45;
+
 const monthSelect = document.querySelector("#monthSelect");
 const yearInput = document.querySelector("#yearInput");
 const todayButton = document.querySelector("#todayButton");
@@ -540,7 +551,7 @@ async function exportImage() {
 
   try {
     await waitForLogoImage();
-    const canvas = buildExportCanvas(2);
+    const canvas = buildFullMonthImageCanvas(2);
     const link = document.createElement("a");
     link.download = `foglio-preghiera-${monthNames[state.month]}-${state.year}.png`;
     link.href = canvas.toDataURL("image/png");
@@ -561,140 +572,58 @@ async function exportPdf() {
     await saveMonth();
     await waitForLogoImage();
 
-    const canvas = buildExportCanvas(2);
-    const pages = splitCanvasForPdf(canvas);
-    const pageImages = pages
-      .map(
-        (imageUrl, index) =>
-          `<section class="page"><img src="${imageUrl}" alt="Foglio di preghiera pagina ${index + 1}" /></section>`
-      )
-      .join("");
+    const canvas = buildExportCanvas(PDF_EXPORT_SCALE);
+    const pages = splitCanvasForPdf(canvas, "image/jpeg", PDF_IMAGE_QUALITY);
     const title = `foglio-preghiera-${monthNames[state.month]}-${state.year}`;
-    const printFrame = document.createElement("iframe");
-    printFrame.title = title;
-    printFrame.className = "print-frame";
-    document.body.append(printFrame);
+    const PdfDocument = window.jspdf?.jsPDF;
 
-    const printDocument = printFrame.contentDocument || printFrame.contentWindow?.document;
-    if (!printDocument || !printFrame.contentWindow) {
-      printFrame.remove();
-      showToast("Impossibile aprire il dialogo PDF", "warning");
+    if (!PdfDocument) {
+      showToast("Libreria PDF non caricata", "warning");
       return;
     }
 
-    printDocument.open();
-    printDocument.write(`<!doctype html>
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <title>${title}</title>
-    <style>
-      @page {
-        size: A4 landscape;
-        margin: 6mm;
+    const pdf = new PdfDocument({ orientation: "landscape", unit: "mm", format: "a4" });
+    pages.forEach((imageUrl, index) => {
+      if (index > 0) {
+        pdf.addPage("a4", "landscape");
       }
-
-      * {
-        box-sizing: border-box;
-      }
-
-      html,
-      body {
-        margin: 0;
-        background: #ffffff;
-      }
-
-      body {
-        min-height: 100vh;
-      }
-
-      .page {
-        break-after: page;
-        page-break-after: always;
-      }
-
-      .page:last-child {
-        break-after: auto;
-        page-break-after: auto;
-      }
-
-      img {
-        display: block;
-        width: 100%;
-        height: auto;
-        page-break-inside: avoid;
-      }
-    </style>
-  </head>
-  <body>
-    ${pageImages}
-    <script>
-      const images = Array.from(document.images);
-      const loaded = images.map((image) => {
-        if (image.complete) {
-          return Promise.resolve();
-        }
-
-        return new Promise((resolve) => {
-          image.addEventListener("load", resolve, { once: true });
-          image.addEventListener("error", resolve, { once: true });
-        });
-      });
-
-      Promise.all(loaded).then(() => {
-        setTimeout(() => {
-          window.focus();
-          window.print();
-        }, 100);
-      });
-    <\/script>
-  </body>
-</html>`);
-    printDocument.close();
-
-    const removePrintFrame = () => {
-      setTimeout(() => printFrame.remove(), 400);
-    };
-    printFrame.contentWindow.addEventListener("afterprint", removePrintFrame, { once: true });
-    setTimeout(removePrintFrame, 12000);
-    showToast("PDF pronto per la stampa");
+      pdf.addImage(imageUrl, "JPEG", 0, 0, 297, 210);
+    });
+    pdf.save(`${title}.pdf`);
+    showToast("PDF esportato in 2 pagine");
   } finally {
     printButton.disabled = false;
     printButton.querySelector("span:last-child").textContent = "PDF";
   }
 }
 
-function splitCanvasForPdf(canvas) {
-  const printableWidthMm = 297 - 12;
-  const printableHeightMm = 210 - 12;
-  const printableRatio = printableWidthMm / printableHeightMm;
-  const pageHeight = Math.floor(canvas.width / printableRatio);
+function splitCanvasForPdf(canvas, mimeType = "image/png", quality) {
+  const pageHeight = Math.floor(canvas.height / EXPORT_PAGE_COUNT);
   const pages = [];
 
-  for (let y = 0; y < canvas.height; y += pageHeight) {
-    const height = Math.min(pageHeight, canvas.height - y);
+  for (let page = 0; page < EXPORT_PAGE_COUNT; page += 1) {
+    const y = page * pageHeight;
     const pageCanvas = document.createElement("canvas");
     pageCanvas.width = canvas.width;
-    pageCanvas.height = height;
-    pageCanvas.getContext("2d").drawImage(canvas, 0, y, canvas.width, height, 0, 0, canvas.width, height);
-    pages.push(pageCanvas.toDataURL("image/png"));
+    pageCanvas.height = pageHeight;
+    pageCanvas.getContext("2d").drawImage(canvas, 0, y, canvas.width, pageHeight, 0, 0, canvas.width, pageHeight);
+    pages.push(pageCanvas.toDataURL(mimeType, quality));
   }
 
   return pages;
 }
 
-function buildExportCanvas(scale = 2) {
+function buildFullMonthImageCanvas(scale = 2) {
   const totalDays = daysInMonth(state.year, state.month);
-  const width = 1800;
-  const padding = 32;
-  const pageHeaderHeight = 118;
-  const headerHeight = 42;
+  const width = EXPORT_PAGE_WIDTH;
+  const padding = EXPORT_PAGE_PADDING;
+  const pageHeaderHeight = EXPORT_PAGE_HEADER_HEIGHT;
+  const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
   const minRowHeight = 66;
   const col1 = 138;
   const col2 = 260;
   const col3 = width - padding * 2 - col1 - col2;
   const rows = [];
-
   const measureCanvas = document.createElement("canvas");
   const measureCtx = measureCanvas.getContext("2d");
 
@@ -702,7 +631,7 @@ function buildExportCanvas(scale = 2) {
     const data = state.days[day] || {};
     const readingLines = wrapRichText(measureCtx, data.reading || "", col2 - 20, "23px Arial", "bold 23px Arial");
     const subjectLines = wrapRichText(measureCtx, data.subject || "", col3 - 24, "27px Arial", "bold 27px Arial");
-    const rowHeight = Math.max(minRowHeight, (Math.max(readingLines.length, subjectLines.length, 2) * 31) + 18);
+    const rowHeight = Math.max(minRowHeight, Math.max(readingLines.length * 28, subjectLines.length * 31, 73) + 18);
     rows.push({ day, readingLines, subjectLines, rowHeight });
   }
 
@@ -758,6 +687,204 @@ function buildExportCanvas(scale = 2) {
   }
 
   return canvas;
+}
+
+function buildExportCanvas(scale = 2) {
+  const totalDays = daysInMonth(state.year, state.month);
+  const width = EXPORT_PAGE_WIDTH;
+  const height = EXPORT_PAGE_HEIGHT * EXPORT_PAGE_COUNT;
+  const padding = EXPORT_PAGE_PADDING;
+  const pageHeaderHeight = EXPORT_PAGE_HEADER_HEIGHT;
+  const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
+  const minRowHeight = 66;
+  const col1 = 138;
+  const col2 = 260;
+  const col3 = width - padding * 2 - col1 - col2;
+  const measureCanvas = document.createElement("canvas");
+  const measureCtx = measureCanvas.getContext("2d");
+  const availableRowHeight = EXPORT_PAGE_HEIGHT - padding * 2 - pageHeaderHeight - headerHeight;
+  const layout = fitExportLayout(totalDays, measureCtx, col2, col3, minRowHeight, availableRowHeight);
+  const { metrics, pageRows } = layout;
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width * scale;
+  canvas.height = height * scale;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(scale, scale);
+  ctx.fillStyle = "#fffdf8";
+  ctx.fillRect(0, 0, width, height);
+
+  const left = padding;
+  const right = width - padding;
+
+  for (let pageIndex = 0; pageIndex < EXPORT_PAGE_COUNT; pageIndex += 1) {
+    const pageTop = pageIndex * EXPORT_PAGE_HEIGHT;
+    let y = pageTop + padding;
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(left, y, right - left, pageHeaderHeight);
+    drawLogo(ctx, left + 310, y + 12, 150, 92);
+    drawText(
+      ctx,
+      `Soggetti e calendario di preghiera ${monthNames[state.month]} ${state.year}`,
+      left + 480,
+      y + 69,
+      right - left - 520,
+      "bold 43px Georgia",
+      "#215447"
+    );
+    y += pageHeaderHeight;
+
+    drawFilledRect(ctx, left, y, right - left, headerHeight, "#2f6f61", 3);
+    drawLine(ctx, left + col1, y, left + col1, y + headerHeight, 3);
+    drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
+    drawCenteredText(ctx, "GIORNO", left, y, col1, headerHeight, "bold 18px Arial", "#fff");
+    drawCenteredText(ctx, "LETTURA", left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
+    drawCenteredText(ctx, "SOGGETTO DI PREGHIERA", left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
+    y += headerHeight;
+
+    const fittedRows = stretchRowsToHeight(pageRows[pageIndex], availableRowHeight);
+    for (const row of fittedRows) {
+      const date = new Date(state.year, state.month, row.day);
+      if (date.getDay() === 0) {
+        ctx.fillStyle = "#fde8ef";
+        ctx.fillRect(left, y, right - left, row.fittedHeight);
+      }
+      drawRect(ctx, left, y, right - left, row.fittedHeight, 3);
+      drawLine(ctx, left + col1, y, left + col1, y + row.fittedHeight, 3);
+      drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.fittedHeight, 3);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(left, y, right - left, row.fittedHeight);
+      ctx.clip();
+      drawCellText(ctx, String(row.day), left + 10, y + metrics.dayY, col1 - 20, metrics.dayFont, "#1e1c18", metrics.dayLineHeight);
+      drawCellText(ctx, weekdayNames[date.getDay()], left + 10, y + metrics.weekdayY, col1 - 20, metrics.weekdayFont, "#6f675b", metrics.weekdayLineHeight);
+      drawRichLines(ctx, row.readingLines, left + col1 + 10, y + metrics.readingY, col2 - 20, metrics.readingFont, metrics.readingBoldFont, metrics.readingLineHeight);
+      drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, y + metrics.subjectY, col3 - 24, metrics.subjectFont, metrics.subjectBoldFont, metrics.subjectLineHeight);
+      ctx.restore();
+      y += row.fittedHeight;
+    }
+  }
+
+  return canvas;
+}
+
+function fitExportLayout(totalDays, measureCtx, col2, col3, baseMinRowHeight, availableRowHeight) {
+  let bestLayout = null;
+  let low = MIN_EXPORT_TEXT_SCALE;
+  let high = 1;
+
+  for (let attempt = 0; attempt < 12; attempt += 1) {
+    const textScale = (low + high) / 2;
+    const metrics = buildExportMetrics(textScale, baseMinRowHeight);
+    const rows = buildExportRows(totalDays, measureCtx, col2, col3, metrics);
+    const pageRows = splitRowsIntoTwoPages(rows);
+    const fits = pageRows.every((rowsForPage) => rowsForPage.reduce((sum, row) => sum + row.rowHeight, 0) <= availableRowHeight);
+
+    if (fits) {
+      bestLayout = { metrics, pageRows };
+      low = textScale;
+    } else {
+      high = textScale;
+    }
+  }
+
+  if (!bestLayout) {
+    const metrics = buildExportMetrics(MIN_EXPORT_TEXT_SCALE, baseMinRowHeight);
+    bestLayout = {
+      metrics,
+      pageRows: splitRowsIntoTwoPages(buildExportRows(totalDays, measureCtx, col2, col3, metrics)),
+    };
+  }
+
+  bestLayout.pageRows = bestLayout.pageRows.map((rowsForPage) => stretchRowsToHeight(rowsForPage, availableRowHeight));
+  return bestLayout;
+}
+
+function buildExportMetrics(textScale, baseMinRowHeight) {
+  const size = (value) => `${Math.max(10, Math.round(value * textScale))}px Arial`;
+  const boldSize = (value) => `bold ${Math.max(10, Math.round(value * textScale))}px Arial`;
+  const scaled = (value) => Math.max(1, Math.round(value * textScale));
+
+  return {
+    readingFont: size(23),
+    readingBoldFont: boldSize(23),
+    readingLineHeight: scaled(28),
+    readingY: scaled(25),
+    subjectFont: size(27),
+    subjectBoldFont: boldSize(27),
+    subjectLineHeight: scaled(31),
+    subjectY: scaled(27),
+    dayFont: boldSize(25),
+    dayLineHeight: scaled(29),
+    dayY: scaled(27),
+    weekdayFont: boldSize(15),
+    weekdayLineHeight: scaled(20),
+    weekdayY: scaled(53),
+    minRowHeight: Math.max(42, Math.round(baseMinRowHeight * textScale)),
+    verticalPad: scaled(18),
+  };
+}
+
+function buildExportRows(totalDays, measureCtx, col2, col3, metrics) {
+  const rows = [];
+
+  for (let day = 1; day <= totalDays; day += 1) {
+    const data = state.days[day] || {};
+    const readingLines = wrapRichText(measureCtx, data.reading || "", col2 - 20, metrics.readingFont, metrics.readingBoldFont);
+    const subjectLines = wrapRichText(measureCtx, data.subject || "", col3 - 24, metrics.subjectFont, metrics.subjectBoldFont);
+    const textHeight = Math.max(
+      readingLines.length * metrics.readingLineHeight,
+      subjectLines.length * metrics.subjectLineHeight,
+      metrics.weekdayY + metrics.weekdayLineHeight
+    );
+    const rowHeight = Math.max(metrics.minRowHeight, textHeight + metrics.verticalPad);
+    rows.push({ day, readingLines, subjectLines, rowHeight });
+  }
+
+  return rows;
+}
+
+function splitRowsIntoTwoPages(rows) {
+  if (rows.length < 2) {
+    return [rows, []];
+  }
+
+  let bestSplit = Math.ceil(rows.length / EXPORT_PAGE_COUNT);
+  let bestDifference = Number.POSITIVE_INFINITY;
+
+  for (let split = 1; split < rows.length; split += 1) {
+    const firstHeight = rows.slice(0, split).reduce((sum, row) => sum + row.rowHeight, 0);
+    const secondHeight = rows.slice(split).reduce((sum, row) => sum + row.rowHeight, 0);
+    const difference = Math.abs(firstHeight - secondHeight);
+
+    if (difference < bestDifference) {
+      bestDifference = difference;
+      bestSplit = split;
+    }
+  }
+
+  return [rows.slice(0, bestSplit), rows.slice(bestSplit)];
+}
+
+function stretchRowsToHeight(rows, targetHeight) {
+  if (!rows.length) {
+    return [];
+  }
+
+  const baseHeight = rows.reduce((sum, row) => sum + row.rowHeight, 0);
+  const extraHeight = Math.max(0, targetHeight - baseHeight);
+  const baseExtra = Math.floor(extraHeight / rows.length);
+  let remainder = extraHeight - baseExtra * rows.length;
+
+  return rows.map((row) => {
+    const addOne = remainder > 0 ? 1 : 0;
+    remainder -= addOne;
+    return {
+      ...row,
+      fittedHeight: row.rowHeight + baseExtra + addOne,
+    };
+  });
 }
 
 function waitForLogoImage() {

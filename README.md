@@ -11,8 +11,8 @@ Apri `index.html` nel browser ed effettua l'accesso con un utente Supabase.
 - Seleziona una parte del testo in una cella e usa `B` per metterla in grassetto.
 - Il salvataggio e' automatico per ogni mese su Supabase.
 - `Importa mese precedente` copia i soggetti dal mese prima nello stesso ordine, mantenendo il grassetto e saltando sempre le domeniche.
-- `PDF` apre la stampa del browser, gia' impostata per A4 orizzontale.
-- `Immagine` scarica un PNG ad alta risoluzione del foglio.
+- `PDF` scarica un file A4 orizzontale di 2 pagine esatte, senza footer dell'app.
+- `Immagine` scarica un PNG ad alta risoluzione con tutto il mese in un'unica colonna.
 
 Il browser mantiene una copia locale di emergenza, ma la sorgente condivisa dei mesi e' Supabase.
 
