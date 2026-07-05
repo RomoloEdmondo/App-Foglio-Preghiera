@@ -30,8 +30,8 @@ const EXPORT_PAGE_HEADER_HEIGHT = 118;
 const EXPORT_TABLE_HEADER_HEIGHT = 42;
 const EXPORT_PAGE_RATIO = (297 - 12) / (210 - 12);
 const EXPORT_PAGE_HEIGHT = Math.round(EXPORT_PAGE_WIDTH / EXPORT_PAGE_RATIO);
-const PDF_EXPORT_SCALE = 1.2;
-const PDF_IMAGE_QUALITY = 0.82;
+const PDF_EXPORT_SCALE = 2.2;
+const PDF_IMAGE_QUALITY = 0.97;
 const MIN_EXPORT_TEXT_SCALE = 0.45;
 
 const monthSelect = document.querySelector("#monthSelect");
