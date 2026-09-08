@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="{{lang}}">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{{appName}}</title>
+    <meta name="application-name" content="{{appName}}" />
+    <meta name="apple-mobile-web-app-title" content="{{appName}}" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="description" content="{{description}}" />
+    <meta name="theme-color" content="#2f6f61" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="{{appName}}" />
+    <meta property="og:title" content="{{appName}}" />
+    <meta property="og:description" content="{{description}}" />
+    <meta property="og:image" content="../assets/logo_app.png" />
+    <meta property="og:image:alt" content="Logo {{appName}}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{appName}}" />
+    <meta name="twitter:description" content="{{description}}" />
+    <meta name="twitter:image" content="../assets/logo_app.png" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v={{version}}" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v={{version}}" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v={{version}}" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v={{version}}" />
+    <link rel="manifest" href="site.webmanifest" />
+    <link rel="stylesheet" href="../styles.css?v={{version}}" />
+  </head>
+  <body>
+    <section class="login-landing" id="loginLanding">
+      <div class="login-card" id="setupNotice" hidden>
+        <p class="eyebrow">{{setup}}</p>
+        <h1>{{setupTitle}}</h1>
+        <p class="muted">{{setupHint}}</p>
+      </div>
+
+      <div class="login-card" id="loginCard">
+        <img
+          src="../assets/logo-italiano.jpeg"
+          alt="{{logoAlt}}"
+          style="display:block;width:min(156px,42vw);max-height:150px;margin:0 auto 18px;object-fit:contain"
+        />
+        <p class="eyebrow">{{group}}</p>
+        <h1>{{title}}</h1>
+        <p><a href="../">{{chooseLanguage}}</a></p>
+        <form class="auth-form login-form" id="loginForm">
+          <label>
+            <span>{{email}}</span>
+            <input id="emailInput" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            <span>{{password}}</span>
+            <input id="passwordInput" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">{{login}}</button>
+        </form>
+      </div>
+      <div class="login-card" id="accessNotice" hidden>
+        <p class="eyebrow">{{group}}</p>
+        <h1>{{accessTitle}}</h1>
+        <p id="accessMessage" role="status"></p>
+        <div class="access-actions">
+          <button type="button" id="retryAccessButton">{{retry}}</button>
+          <button type="button" id="accessLogoutButton">{{logout}}</button>
+          <a href="../">{{chooseLanguage}}</a>
+        </div>
+      </div>
+    </section>
+
+    <div id="appShell" hidden>
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">{{group}}</p>
+          <h1>{{title}}</h1>
+        </div>
+
+        <div class="header-actions">
+          <a class="language-link" href="../">{{chooseLanguage}}</a>
+          <div class="account-panel" aria-label="{{account}}">
+            <div class="user-pill" title="{{connectedUser}}">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <circle cx="12" cy="8" r="4"></circle>
+                  <path d="M4 20c1.7-4 4.4-6 8-6s6.3 2 8 6"></path>
+                </svg>
+              </span>
+              <span id="userEmail">{{signedIn}}</span>
+            </div>
+            <button id="logoutButton" class="logout-button" type="button">
+              <span class="icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M12 3v8"></path>
+                  <path d="M6.7 6.8a8 8 0 1 0 10.6 0"></path>
+                </svg>
+              </span>
+              <span>{{logout}}</span>
+            </button>
+          </div>
+
+          <div class="toolbar" aria-label="{{controls}}">
+            <div class="toolbar-group primary-tools" aria-label="{{period}}">
+              <label>
+                <span>{{month}}</span>
+                <select id="monthSelect"></select>
+              </label>
+              <label>
+                <span>{{year}}</span>
+                <input id="yearInput" type="number" min="1900" max="2200" step="1" />
+              </label>
+              <button id="boldButton" class="format-button" type="button" title="{{bold}}" aria-label="{{bold}}">
+                <strong>{{boldLetter}}</strong>
+              </button>
+              <button id="todayButton" type="button">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <rect x="4" y="5" width="16" height="15" rx="2"></rect>
+                    <path d="M8 3v4"></path>
+                    <path d="M16 3v4"></path>
+                    <path d="M4 10h16"></path>
+                    <path d="M12 14h.01"></path>
+                  </svg>
+                </span>
+                <span>{{today}}</span>
+              </button>
+            </div>
+
+            <div class="toolbar-group action-group" aria-label="{{actions}}">
+              <button id="previousMonthButton" class="accent-action" type="button">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M7 7h10"></path>
+                    <path d="M14 4l3 3-3 3"></path>
+                    <path d="M17 17H7"></path>
+                    <path d="M10 14l-3 3 3 3"></path>
+                  </svg>
+                </span>
+                <span>{{import}}</span>
+              </button>
+              <button id="saveButton" class="success-action" type="button">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <path d="M5 4h12l2 2v14H5z"></path>
+                    <path d="M8 4v6h8V4"></path>
+                    <path d="M8 16h8"></path>
+                  </svg>
+                </span>
+                <span>{{save}}</span>
+              </button>
+            </div>
+
+            <div class="toolbar-group export-group" aria-label="{{exportMonth}}">
+              <span class="group-label">{{export}}</span>
+              <button id="printButton" class="pdf-action" type="button">
+                <span>PDF</span>
+              </button>
+              <button id="imageButton" class="image-action" type="button">
+                <span class="icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" focusable="false">
+                    <rect x="4" y="5" width="16" height="14" rx="2"></rect>
+                    <path d="M8 15l3-3 2 2 3-4 3 5"></path>
+                    <path d="M8 9h.01"></path>
+                  </svg>
+                </span>
+                <span>{{image}}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="sheet" id="sheet" aria-label="{{sheetLabel}}">
+          <header class="sheet-page-header">
+            <img id="churchLogo" src="../assets/logo-italiano.jpeg" alt="{{logoAlt}}" />
+            <h2 id="sheetTitle">{{sheetTitle}}</h2>
+          </header>
+
+          <div class="table-wrap">
+            <table class="prayer-table">
+              <colgroup>
+                <col class="date-col" />
+                <col class="reading-col" />
+                <col class="subject-col" />
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>{{day}}</th>
+                  <th>{{reading}}</th>
+                  <th>{{subject}}</th>
+                </tr>
+              </thead>
+              <tbody id="daysBody"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <footer class="app-footer">
+      <span>© 2026 {{copyright}}</span>
+      <span>{{support}} <a href="mailto:romolo.91@live.it">romolo.91@live.it</a></span>
+    </footer>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="config.js?v={{version}}"></script>
+    <script src="../supabase-config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="../app.js?v={{version}}"></script>
+  </body>
+</html>

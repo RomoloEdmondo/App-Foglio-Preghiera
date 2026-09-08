@@ -1,0 +1,25 @@
+{
+  "name": "App Foglio di Preghiera",
+  "short_name": "Foglio di preghiera",
+  "description": "Calendario mensile dei soggetti di preghiera.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ebe5da",
+  "theme_color": "#2f6f61",
+  "icons": [
+    {
+      "src": "../assets/logo-italiano-32.png",
+      "sizes": "32x32",
+      "type": "image/png"
+    },
+    {
+      "src": "../assets/logo_app.png",
+      "sizes": "1254x1254",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "lang": "it",
+  "id": "./",
+  "scope": "./"
+}

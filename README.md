@@ -1,42 +1,62 @@
-# Foglio di Preghiera
+# Foglio di preghiera / Gebetsplan
 
-App statica in HTML, CSS e JavaScript per aggiornare mese dopo mese il calendario dei soggetti di preghiera con accesso protetto da Supabase.
+Un’unica app statica HTML, CSS e JavaScript con due ingressi e contenuti indipendenti:
 
-## Come si usa
+- [Scelta del gruppo](https://romoloedmondo.github.io/App-Foglio-Preghiera/)
+- [Italiano](https://romoloedmondo.github.io/App-Foglio-Preghiera/it/) → `prayer_months`
+- [Deutsch](https://romoloedmondo.github.io/App-Foglio-Preghiera/de/) → `prayer_months_de`
 
-Apri `index.html` nel browser ed effettua l'accesso con un utente Supabase.
+Entrambe usano il progetto Supabase configurato in `supabase-config.js`. Le chiavi pubbliche di connessione non sono password degli utenti. Le policy RLS verificano l’appartenenza al gruppo su ogni operazione. Il gruppo tedesco inizia senza contenuti italiani copiati o tradotti.
 
-- Scegli mese e anno dalla barra in alto.
-- Compila la colonna `Lettura` e la colonna `Soggetto di preghiera`.
-- Seleziona una parte del testo in una cella e usa `B` per metterla in grassetto.
-- Il salvataggio e' automatico per ogni mese su Supabase.
-- `Importa mese precedente` copia i soggetti dal mese prima nello stesso ordine, mantenendo il grassetto e saltando sempre le domeniche.
-- `PDF` scarica un file A4 orizzontale di 2 pagine esatte, senza footer dell'app.
-- `Immagine` scarica un PNG ad alta risoluzione con tutto il mese in un'unica colonna.
+## Funzioni
 
-Il browser mantiene una copia locale di emergenza, ma la sorgente condivisa dei mesi e' Supabase.
+Accesso con email e password, calendario mensile, salvataggio automatico, testo in grassetto, importazione dei soggetti dal mese precedente saltando le domeniche, PDF A4 orizzontale di due pagine e immagine PNG dell’intero mese. Interfaccia, calendario, messaggi ed esportazioni seguono la lingua dell’ingresso scelto. Il logo della chiesa è condiviso.
 
-## Supabase
+Le copie locali sono separate per lingua e account. Le modifiche non sincronizzate restano sul dispositivo e possono essere salvate nuovamente dopo il ripristino della connessione. La vecchia copia locale dell’app italiana viene letta solo da account abilitati all’italiano. Aprire o visualizzare un mese non scrive dati: un errore di caricamento non crea né sovrascrive un foglio vuoto.
 
-L'app salva il contenuto completo dei fogli mensili in Supabase. Il sito resta compatibile con GitHub Pages: i file sono statici, mentre Supabase salva i dati e protegge l'accesso.
+## Modificare e pubblicare
 
-### Configurazione
+Il codice delle funzioni è in `app.js`, la grafica in `styles.css`, il modello HTML comune in `templates/app.html` e le traduzioni in `locales/it.json` e `locales/de.json`.
 
-1. Crea un progetto gratuito su Supabase.
-2. Apri `SQL Editor` e incolla il contenuto di `supabase-schema.sql`.
-3. In `Authentication > Users`, crea l'utente con email e password.
-4. In `Project Settings > API`, copia `Project URL` e `anon public key`.
-5. Inserisci quei valori in `supabase-config.js`:
+1. Modificare i file sorgenti.
+2. Eseguire `npm run build` (Node.js 20 o successivo per l’ambiente completo).
+3. Includere nel commit anche i file generati nelle cartelle `it/` e `de/`.
+4. Pubblicare il commit sul ramo `master`.
 
-```js
-window.FOGLIO_PREGHIERA_SUPABASE = {
-  url: "https://tuo-progetto.supabase.co",
-  anonKey: "la-tua-anon-key",
-};
+GitHub Pages è configurato per pubblicare dalla radice del ramo `master`: serve entrambe le cartelle nella stessa pubblicazione. Non occorrono due repository o due build online. I file generati sono già inclusi nel repository; Pages non deve eseguire Node.js.
+
+Per l’anteprima locale usare un server HTTP dalla radice, per esempio `python -m http.server 8000`, poi aprire `http://localhost:8000/`. Non aprire i file con `file://`.
+
+## Database e account
+
+`supabase-schema.sql` crea le due tabelle dei mesi e `prayer_group_members`, abilita RLS e imposta i permessi. Si esegue come amministratore nel SQL Editor di Supabase; preserva i fogli esistenti. Solo alla prima creazione della tabella dei gruppi assegna gli account già presenti all’italiano. Le esecuzioni successive non riassegnano permessi rimossi.
+
+Per aggiungere una persona:
+
+1. Creare il suo account in Supabase → Authentication → Users, se non esiste.
+2. Nel SQL Editor assegnare il gruppo appropriato, sostituendo l’email di esempio:
+
+```sql
+insert into public.prayer_group_members (user_id, language)
+select id, 'de' from auth.users
+where lower(email) = lower('persona@example.com')
+on conflict do nothing;
 ```
 
-### Pagina
+Usare `'it'` per l’italiano. Due righe per lo stesso account abilitano entrambe le versioni. La tabella dei gruppi è modificabile soltanto da un amministratore; gli utenti possono leggere solo le proprie appartenenze. Un account nuovo senza gruppi assegnati vede il messaggio di accesso non abilitato.
 
-- `index.html`: richiede accesso, salva i fogli mensili e permette di importare i soggetti dal mese precedente saltando le domeniche.
+Per rimuovere un’abilitazione:
 
-La chiave `anon` puo' stare nel JavaScript pubblico: la sicurezza e' nelle policy RLS definite in `supabase-schema.sql`.
+```sql
+delete from public.prayer_group_members
+where language = 'de'
+  and user_id in (select id from auth.users where lower(email) = lower('persona@example.com'));
+```
+
+## Verifiche
+
+Con Node.js 20 o successivo: `npm ci`, `npx playwright install chromium`, `npm test`. Per usare Chrome già installato impostare `TEST_BROWSER_CHANNEL=chrome` prima di eseguire i test.
+
+I test browser intercettano tutte le richieste al backend e non scrivono nel database reale. Verificano i due ingressi, login/logout, traduzioni, salvataggi indipendenti, recupero delle modifiche non sincronizzate, importazione, domeniche, esportazioni e accesso negato. Le anteprime e i PDF di prova sono in `test-results/`, esclusa da Git.
+
+`tests/group-permissions.sql` verifica i permessi nel database con record temporanei e rollback finale. Richiede due account bilingui e uno solo italiano e riserva dicembre 2199 per le prove; eseguirlo come amministratore. Controlla lettura, scrittura, aggiornamento, cancellazione e impossibilità di assegnarsi da soli un gruppo.

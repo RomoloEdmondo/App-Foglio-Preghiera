@@ -1,27 +1,12 @@
-const monthNames = [
-  "gennaio",
-  "febbraio",
-  "marzo",
-  "aprile",
-  "maggio",
-  "giugno",
-  "luglio",
-  "agosto",
-  "settembre",
-  "ottobre",
-  "novembre",
-  "dicembre",
-];
-
-const weekdayNames = [
-  "Domenica",
-  "Lunedi",
-  "Martedi",
-  "Mercoledi",
-  "Giovedi",
-  "Venerdi",
-  "Sabato",
-];
+const appConfig = window.PRAYER_APP;
+const monthNames = appConfig.months;
+const weekdayNames = appConfig.weekdays;
+function t(key, values = {}) {
+  return appConfig.messages[key].replace(/\{(\w+)\}/g, (_, name) => values[name] ?? `{${name}}`);
+}
+function monthTitle() {
+  return `${t("sheetTitle")} ${monthNames[state.month]} ${state.year}`;
+}
 
 const EXPORT_PAGE_COUNT = 2;
 const EXPORT_PAGE_WIDTH = 1800;
@@ -50,6 +35,8 @@ const logoImage = document.querySelector("#churchLogo");
 const loginLanding = document.querySelector("#loginLanding");
 const loginCard = document.querySelector("#loginCard");
 const setupNotice = document.querySelector("#setupNotice");
+const accessNotice = document.querySelector("#accessNotice");
+const accessMessage = document.querySelector("#accessMessage");
 const appShell = document.querySelector("#appShell");
 const loginForm = document.querySelector("#loginForm");
 const emailInput = document.querySelector("#emailInput");
@@ -73,13 +60,26 @@ let controlsReady = false;
 let appReady = false;
 let currentSession = null;
 let activeEditable = null;
+let authorizedUserId = null;
+let authRevision = 0;
+let loadRevision = 0;
+let monthLoaded = false;
+let dirty = false;
+let saveChain = Promise.resolve();
+let navigationBusy = false;
+
+function setMonthBusy(busy) {
+  navigationBusy = busy;
+  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton]) control.disabled = busy;
+  daysBody.querySelectorAll('.editable').forEach(field => { field.contentEditable = String(!busy); });
+}
 
 function storageKey(year, month) {
-  return `foglio-preghiera:${year}-${String(month + 1).padStart(2, "0")}`;
+  return `foglio-preghiera:${appConfig.lang}:${authorizedUserId}:${year}-${String(month + 1).padStart(2, "0")}`;
 }
 
 function lastViewedKey() {
-  return "foglio-preghiera:last-viewed";
+  return `foglio-preghiera:${appConfig.lang}:${authorizedUserId}:last-viewed`;
 }
 
 function normalizeMonthPayload(payload, year, month) {
@@ -91,38 +91,51 @@ function normalizeMonthPayload(payload, year, month) {
 }
 
 function loadLocalMonth(year, month) {
-  const saved = localStorage.getItem(storageKey(year, month));
-  const parsed = saved ? JSON.parse(saved) : {};
-  return normalizeMonthPayload(parsed, year, month);
+  try {
+    let saved = localStorage.getItem(storageKey(year, month));
+    // Only an authorized Italian account can recover the previous app's cache.
+    if (!saved && appConfig.lang === "it" && authorizedUserId) {
+      saved = localStorage.getItem(`foglio-preghiera:${year}-${String(month + 1).padStart(2, "0")}`);
+    }
+    return saved ? JSON.parse(saved) : null;
+  } catch {
+    return null;
+  }
 }
 
 async function fetchMonth(year, month) {
-  if (!supabaseClient || !currentSession) {
-    return loadLocalMonth(year, month);
-  }
+  if (!authorizedUserId || currentSession?.user.id !== authorizedUserId) throw new Error(t("accessDenied"));
+  const cached = loadLocalMonth(year, month);
 
   const { data, error } = await supabaseClient
-    .from("prayer_months")
+    .from(appConfig.table)
     .select("days")
     .eq("year", year)
     .eq("month", month + 1)
     .maybeSingle();
 
   if (error) {
-    showToast(`Errore caricamento mese: ${error.message}`, "warning");
-    return loadLocalMonth(year, month);
+    // An empty fallback must never overwrite a month that failed to load.
+    if (!cached || error.code === "42501") throw new Error(t("loadError"));
+    showToast(t("offline"), "warning");
+    return { ...normalizeMonthPayload(cached, year, month), pending: Boolean(cached.pending) };
   }
 
-  if (!data) {
-    return loadLocalMonth(year, month);
-  }
-
-  return normalizeMonthPayload(data, year, month);
+  const source = cached?.pending ? cached : (data || cached);
+  return { ...normalizeMonthPayload(source, year, month), pending: Boolean(source?.pending) };
 }
 
 async function loadMonth(year, month) {
-  state = await fetchMonth(year, month);
+  const revision = ++loadRevision;
+  monthLoaded = false;
+  const loaded = await fetchMonth(year, month);
+  if (revision !== loadRevision || !authorizedUserId) return false;
+  state = loaded;
+  dirty = Boolean(loaded.pending);
+  monthLoaded = true;
   localStorage.setItem(lastViewedKey(), JSON.stringify({ year, month }));
+  saveLocalMonth();
+  return true;
 }
 
 function saveLocalMonth() {
@@ -131,41 +144,46 @@ function saveLocalMonth() {
     JSON.stringify({
       days: state.days,
       updatedAt: new Date().toISOString(),
+      pending: dirty,
     })
   );
   localStorage.setItem(lastViewedKey(), JSON.stringify({ year: state.year, month: state.month }));
 }
 
 async function saveMonth(showMessage = false) {
+  if (!monthLoaded || !authorizedUserId || currentSession?.user.id !== authorizedUserId) return false;
+  if (!dirty) {
+    if (showMessage) showToast(t("saved"));
+    return true;
+  }
   saveLocalMonth();
-
-  if (!supabaseClient || !currentSession) {
-    if (showMessage) {
-      showToast("Salvato in locale");
+  const owner = authorizedUserId;
+  const payload = { year: state.year, month: state.month + 1, days: JSON.parse(JSON.stringify(state.days)) };
+  const cacheKey = storageKey(state.year, state.month);
+  const operation = saveChain.then(async () => {
+    if (owner !== authorizedUserId || currentSession?.user.id !== owner) return false;
+    const { error } = await supabaseClient.from(appConfig.table).upsert(payload, { onConflict: "year,month" });
+    if (owner !== authorizedUserId) return false;
+    if (error) {
+      showToast(`${t("saveError")}: ${error.message}`, "warning");
+      return false;
     }
-    return;
-  }
-
-  const { error } = await supabaseClient.from("prayer_months").upsert(
-    {
-      year: state.year,
-      month: state.month + 1,
-      days: state.days,
-    },
-    { onConflict: "year,month" }
-  );
-
-  if (error) {
-    showToast(`Errore salvataggio: ${error.message}`, "warning");
-    return;
-  }
-
-  if (showMessage) {
-    showToast("Salvato");
-  }
+    const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+    if (cached && JSON.stringify(cached.days) === JSON.stringify(payload.days)) {
+      cached.pending = false;
+      localStorage.setItem(cacheKey, JSON.stringify(cached));
+    }
+    if (state.year === payload.year && state.month + 1 === payload.month && JSON.stringify(state.days) === JSON.stringify(payload.days)) dirty = false;
+    if (showMessage) showToast(t("saved"));
+    return true;
+  });
+  saveChain = operation.catch(() => false);
+  return operation.catch(() => { showToast(t("offline"), "warning"); return false; });
 }
 
 function queueSave() {
+  dirty = true;
+  saveLocalMonth();
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
     saveMonth(true);
@@ -247,6 +265,7 @@ function setBusy(form, busy) {
 }
 
 function showLogin() {
+  accessNotice.hidden = true;
   loginLanding.hidden = false;
   loginCard.hidden = false;
   setupNotice.hidden = true;
@@ -254,6 +273,7 @@ function showLogin() {
 }
 
 function showSetupNotice() {
+  accessNotice.hidden = true;
   loginLanding.hidden = false;
   loginCard.hidden = true;
   setupNotice.hidden = false;
@@ -269,31 +289,71 @@ async function initAuth() {
   const { data, error } = await supabaseClient.auth.getSession();
   if (error) {
     showLogin();
-    showToast(`Controlla accesso: ${error.message}`, "warning");
+    showToast(`${t("authError")}: ${error.message}`, "warning");
     return;
   }
 
   await updateAuthState(data.session);
 
   supabaseClient.auth.onAuthStateChange((_event, session) => {
-    updateAuthState(session);
+    // Query permissions outside the auth callback to avoid holding its lock.
+    setTimeout(() => updateAuthState(session), 0);
   });
 }
 
 async function updateAuthState(session) {
-  currentSession = session;
-  const signedIn = Boolean(session);
-  userEmail.textContent = session?.user?.email || "Accesso effettuato";
-
-  loginLanding.hidden = signedIn;
-  loginCard.hidden = signedIn;
-  setupNotice.hidden = true;
-  appShell.hidden = !signedIn;
-
-  if (signedIn) {
-    await initApp();
-  } else {
+  const revision = ++authRevision;
+  if (!session || session.user.id !== authorizedUserId) {
+    clearTimeout(saveTimer);
+    ++loadRevision;
+    authorizedUserId = null;
+    monthLoaded = false;
+    dirty = false;
     appReady = false;
+    activeEditable = null;
+    daysBody.replaceChildren();
+    state = { year: new Date().getFullYear(), month: new Date().getMonth(), days: {} };
+  }
+  currentSession = session;
+  userEmail.textContent = session?.user?.email || t("signedIn");
+  if (!session) {
+    showLogin();
+    return;
+  }
+  loginLanding.hidden = false;
+  loginCard.hidden = true;
+  setupNotice.hidden = true;
+  accessNotice.hidden = false;
+  accessMessage.textContent = t("loading");
+  appShell.hidden = true;
+  try {
+    const { data, error } = await supabaseClient.from("prayer_group_members")
+      .select("language").eq("user_id", session.user.id).eq("language", appConfig.lang).maybeSingle();
+    if (revision !== authRevision) return;
+    if (error || !data) {
+      clearTimeout(saveTimer);
+      ++loadRevision;
+      authorizedUserId = null;
+      monthLoaded = false;
+      appReady = false;
+      daysBody.replaceChildren();
+      accessMessage.textContent = t(error ? "accessError" : "accessDenied");
+      return;
+    }
+    authorizedUserId = session.user.id;
+    await initApp();
+    if (revision !== authRevision) return;
+    loginLanding.hidden = true;
+    accessNotice.hidden = true;
+    appShell.hidden = false;
+  } catch (error) {
+    if (revision !== authRevision) return;
+    clearTimeout(saveTimer);
+    ++loadRevision;
+    authorizedUserId = null;
+    appReady = false;
+    monthLoaded = false;
+    accessMessage.textContent = error.message || t("accessError");
   }
 }
 
@@ -308,11 +368,12 @@ async function initApp() {
   }
 
   appReady = true;
-  const lastViewed = localStorage.getItem(lastViewedKey());
+  const lastViewed = localStorage.getItem(lastViewedKey()) ||
+    (appConfig.lang === "it" ? localStorage.getItem("foglio-preghiera:last-viewed") : null);
   if (lastViewed) {
     try {
       const parsed = JSON.parse(lastViewed);
-      if (Number.isInteger(parsed.year) && Number.isInteger(parsed.month)) {
+      if (Number.isInteger(parsed.year) && parsed.year >= 1900 && parsed.year <= 2200 && Number.isInteger(parsed.month) && parsed.month >= 0 && parsed.month <= 11) {
         await loadMonth(parsed.year, parsed.month);
       } else {
         await loadMonth(state.year, state.month);
@@ -324,7 +385,7 @@ async function initApp() {
     await loadMonth(state.year, state.month);
   }
 
-  render();
+  if (authorizedUserId && monthLoaded) render();
 }
 
 function daysInMonth(year, month) {
@@ -350,28 +411,29 @@ function initControls() {
   imageButton.addEventListener("click", exportImage);
 
   logoutButton.addEventListener("click", async () => {
+    clearTimeout(saveTimer);
     await saveMonth();
     await supabaseClient.auth.signOut();
     appReady = false;
-    showToast("Sei uscito");
+    showToast(t("signedOut"));
   });
 }
 
 async function saveCurrentMonth() {
   clearTimeout(saveTimer);
   saveButton.disabled = true;
-  saveButton.querySelector("span:last-child").textContent = "Salvo...";
+  saveButton.querySelector("span:last-child").textContent = t("saving");
   try {
     await saveMonth(true);
   } finally {
     saveButton.disabled = false;
-    saveButton.querySelector("span:last-child").textContent = "Salva";
+    saveButton.querySelector("span:last-child").textContent = t("save");
   }
 }
 
 function applyBoldToSelection() {
   if (!activeEditable || !document.body.contains(activeEditable)) {
-    showToast("Seleziona il testo in una cella", "warning");
+    showToast(t("selectText"), "warning");
     return;
   }
 
@@ -381,10 +443,28 @@ function applyBoldToSelection() {
 }
 
 async function changeMonth(year, month) {
+  if (navigationBusy) return;
+  if (!Number.isInteger(year) || year < 1900 || year > 2200 || !Number.isInteger(month) || month < 0 || month > 11) {
+    yearInput.value = state.year;
+    return;
+  }
   clearTimeout(saveTimer);
-  await saveMonth();
-  await loadMonth(year, month);
-  render();
+  setMonthBusy(true);
+  try {
+    if (!(await saveMonth())) {
+      monthSelect.value = state.month;
+      yearInput.value = state.year;
+      return;
+    }
+    if (await loadMonth(year, month)) render();
+  } catch (error) {
+    monthLoaded = Boolean(authorizedUserId);
+    monthSelect.value = state.month;
+    yearInput.value = state.year;
+    showToast(error.message, "warning");
+  } finally {
+    setMonthBusy(false);
+  }
 }
 
 function goToCurrentMonth() {
@@ -428,7 +508,7 @@ async function importPreviousMonthSubjects() {
   const currentLabel = `${monthNames[state.month]} ${state.year}`;
 
   const ok = confirm(
-    `Importare i soggetti da ${previousLabel} a ${currentLabel}?\nLe domeniche saranno saltate e non verranno modificate.`
+    t("importConfirm", { previous: previousLabel, current: currentLabel })
   );
 
   if (!ok) {
@@ -436,16 +516,16 @@ async function importPreviousMonthSubjects() {
   }
 
   clearTimeout(saveTimer);
-  await saveMonth();
+  if (!(await saveMonth())) return;
   previousMonthButton.disabled = true;
-  previousMonthButton.querySelector("span:last-child").textContent = "Importo...";
+  previousMonthButton.querySelector("span:last-child").textContent = t("importing");
 
   try {
     const previousState = await fetchMonth(previous.year, previous.month);
     const subjects = orderedNonSundaySubjects(previousState);
 
     if (!subjects.length) {
-      showToast("Nessun soggetto da importare", "warning");
+      showToast(t("noSubjects"), "warning");
       return;
     }
 
@@ -463,19 +543,21 @@ async function importPreviousMonthSubjects() {
       subjectIndex += 1;
     }
 
+    dirty = true;
     render();
-    await saveMonth(true);
-    showToast("Soggetti importati");
+    if (await saveMonth(true)) showToast(t("imported"));
+  } catch (error) {
+    showToast(error.message, "warning");
   } finally {
     previousMonthButton.disabled = false;
-    previousMonthButton.querySelector("span:last-child").textContent = "Importa mese precedente";
+    previousMonthButton.querySelector("span:last-child").textContent = t("import");
   }
 }
 
 function render() {
   monthSelect.value = String(state.month);
   yearInput.value = String(state.year);
-  sheetTitle.textContent = `Soggetti e calendario di preghiera ${monthNames[state.month]} ${state.year}`;
+  sheetTitle.textContent = monthTitle();
   daysBody.replaceChildren();
 
   const totalDays = daysInMonth(state.year, state.month);
@@ -499,11 +581,11 @@ function render() {
     `;
 
     const readingCell = document.createElement("td");
-    const readingField = createEditableField(day, "reading", "Lettura del giorno");
+    const readingField = createEditableField(day, "reading", t("readingLabel"));
     readingCell.append(readingField);
 
     const subjectCell = document.createElement("td");
-    const subjectField = createEditableField(day, "subject", "Soggetto di preghiera");
+    const subjectField = createEditableField(day, "subject", t("subject"));
     subjectField.classList.add("subject-field");
     subjectCell.append(subjectField);
 
@@ -511,7 +593,6 @@ function render() {
     daysBody.append(tr);
   }
 
-  saveMonth();
 }
 
 function createEditableField(day, key, label) {
@@ -547,26 +628,26 @@ function createEditableField(day, key, label) {
 async function exportImage() {
   saveMonth();
   imageButton.disabled = true;
-  imageButton.querySelector("span:last-child").textContent = "Creo...";
+  imageButton.querySelector("span:last-child").textContent = t("creating");
 
   try {
     await waitForLogoImage();
     const canvas = buildFullMonthImageCanvas(2);
     const link = document.createElement("a");
-    link.download = `foglio-preghiera-${monthNames[state.month]}-${state.year}.png`;
+    link.download = `${appConfig.filename}-${monthNames[state.month]}-${state.year}.png`;
     link.href = canvas.toDataURL("image/png");
     link.click();
-    showToast("Immagine esportata");
+    showToast(t("imageExported"));
   } finally {
     imageButton.disabled = false;
-    imageButton.querySelector("span:last-child").textContent = "Immagine";
+    imageButton.querySelector("span:last-child").textContent = t("image");
   }
 }
 
 async function exportPdf() {
   clearTimeout(saveTimer);
   printButton.disabled = true;
-  printButton.querySelector("span:last-child").textContent = "Creo...";
+  printButton.querySelector("span:last-child").textContent = t("creating");
 
   try {
     await saveMonth();
@@ -574,11 +655,11 @@ async function exportPdf() {
 
     const canvas = buildExportCanvas(PDF_EXPORT_SCALE);
     const pages = splitCanvasForPdf(canvas, "image/jpeg", PDF_IMAGE_QUALITY);
-    const title = `foglio-preghiera-${monthNames[state.month]}-${state.year}`;
+    const title = `${appConfig.filename}-${monthNames[state.month]}-${state.year}`;
     const PdfDocument = window.jspdf?.jsPDF;
 
     if (!PdfDocument) {
-      showToast("Libreria PDF non caricata", "warning");
+      showToast(t("pdfMissing"), "warning");
       return;
     }
 
@@ -590,7 +671,7 @@ async function exportPdf() {
       pdf.addImage(imageUrl, "JPEG", 0, 0, 297, 210);
     });
     pdf.save(`${title}.pdf`);
-    showToast("PDF esportato in 2 pagine");
+    showToast(t("pdfExported"));
   } finally {
     printButton.disabled = false;
     printButton.querySelector("span:last-child").textContent = "PDF";
@@ -653,7 +734,7 @@ function buildFullMonthImageCanvas(scale = 2) {
   drawLogo(ctx, left + 310, y + 12, 150, 92);
   drawText(
     ctx,
-    `Soggetti e calendario di preghiera ${monthNames[state.month]} ${state.year}`,
+    monthTitle(),
     left + 480,
     y + 69,
     right - left - 520,
@@ -665,9 +746,9 @@ function buildFullMonthImageCanvas(scale = 2) {
   drawFilledRect(ctx, left, y, right - left, headerHeight, "#2f6f61", 3);
   drawLine(ctx, left + col1, y, left + col1, y + headerHeight, 3);
   drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
-  drawCenteredText(ctx, "GIORNO", left, y, col1, headerHeight, "bold 18px Arial", "#fff");
-  drawCenteredText(ctx, "LETTURA", left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
-  drawCenteredText(ctx, "SOGGETTO DI PREGHIERA", left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
+  drawCenteredText(ctx, t("day").toLocaleUpperCase(appConfig.lang), left, y, col1, headerHeight, "bold 18px Arial", "#fff");
+  drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
+  drawCenteredText(ctx, t("subject").toLocaleUpperCase(appConfig.lang), left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
   y += headerHeight;
 
   for (const row of rows) {
@@ -726,7 +807,7 @@ function buildExportCanvas(scale = 2) {
     drawLogo(ctx, left + 310, y + 12, 150, 92);
     drawText(
       ctx,
-      `Soggetti e calendario di preghiera ${monthNames[state.month]} ${state.year}`,
+      monthTitle(),
       left + 480,
       y + 69,
       right - left - 520,
@@ -738,9 +819,9 @@ function buildExportCanvas(scale = 2) {
     drawFilledRect(ctx, left, y, right - left, headerHeight, "#2f6f61", 3);
     drawLine(ctx, left + col1, y, left + col1, y + headerHeight, 3);
     drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
-    drawCenteredText(ctx, "GIORNO", left, y, col1, headerHeight, "bold 18px Arial", "#fff");
-    drawCenteredText(ctx, "LETTURA", left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
-    drawCenteredText(ctx, "SOGGETTO DI PREGHIERA", left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
+    drawCenteredText(ctx, t("day").toLocaleUpperCase(appConfig.lang), left, y, col1, headerHeight, "bold 18px Arial", "#fff");
+    drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
+    drawCenteredText(ctx, t("subject").toLocaleUpperCase(appConfig.lang), left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
     y += headerHeight;
 
     const fittedRows = stretchRowsToHeight(pageRows[pageIndex], availableRowHeight);
@@ -1137,7 +1218,7 @@ loginForm.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   if (!supabaseClient) {
-    showToast("Configura Supabase", "warning");
+    showToast(t("configure"), "warning");
     return;
   }
 
@@ -1151,12 +1232,20 @@ loginForm.addEventListener("submit", async (event) => {
   setBusy(loginForm, false);
 
   if (error) {
-    showToast(`Accesso non riuscito: ${error.message}`, "warning");
+    showToast(t("loginError"), "warning");
     return;
   }
 
   passwordInput.value = "";
-  showToast("Accesso effettuato");
+  showToast(t("signedIn"));
 });
 
+document.querySelector("#retryAccessButton").addEventListener("click", () => updateAuthState(currentSession));
+document.querySelector("#accessLogoutButton").addEventListener("click", async () => {
+  await supabaseClient.auth.signOut();
+  await updateAuthState(null);
+});
+window.addEventListener("beforeunload", () => {
+  if (monthLoaded && authorizedUserId && dirty) saveLocalMonth();
+});
 initAuth();

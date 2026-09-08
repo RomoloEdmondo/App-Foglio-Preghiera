@@ -1,0 +1,11 @@
+{
+  "name": "foglio-preghiera",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node tests/app.cjs"
+  },
+  "engines": { "node": ">=20" },
+  "devDependencies": { "playwright": "1.62.1" }
+}

@@ -1,7 +1,7 @@
 {
-  "name": "App Foglio di Preghiera",
-  "short_name": "Foglio Preghiera",
-  "description": "Calendario mensile dei soggetti di preghiera.",
+  "name": "Foglio di preghiera · Gebetsplan",
+  "short_name": "Preghiera · Gebet",
+  "description": "Gruppo italiano / Deutsche Gruppe",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#ebe5da",
