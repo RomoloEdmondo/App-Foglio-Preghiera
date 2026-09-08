@@ -304,6 +304,8 @@ async function initAuth() {
 async function updateAuthState(session) {
   const revision = ++authRevision;
   if (!session || session.user.id !== authorizedUserId) {
+    if (imagePreview.open) imagePreview.close();
+    clearImagePreview();
     clearTimeout(saveTimer);
     ++loadRevision;
     authorizedUserId = null;
@@ -550,7 +552,7 @@ async function importPreviousMonthSubjects() {
     showToast(error.message, "warning");
   } finally {
     previousMonthButton.disabled = false;
-    previousMonthButton.querySelector("span:last-child").textContent = t("import");
+    previousMonthButton.querySelector("span:last-child").textContent = t("importShort");
   }
 }
 
@@ -625,24 +627,93 @@ function createEditableField(day, key, label) {
   return field;
 }
 
+const imagePreview = document.querySelector("#imagePreview");
+const previewImage = document.querySelector("#previewImage");
+const previewStatus = document.querySelector("#imagePreviewStatus");
+const previewActions = document.querySelector("#imagePreviewActions");
+const previewHint = document.querySelector("#imagePreviewHint");
+const shareImageButton = document.querySelector("#shareImageButton");
+let previewFile = null;
+let previewUrl = null;
+let previewRevision = 0;
+
+function clearImagePreview() {
+  ++previewRevision;
+  previewImage.hidden = true;
+  previewImage.removeAttribute("src");
+  previewActions.hidden = true;
+  previewHint.hidden = true;
+  previewFile = null;
+  if (previewUrl) URL.revokeObjectURL(previewUrl);
+  previewUrl = null;
+  document.querySelector("#downloadImageLink").removeAttribute("href");
+  document.querySelector("#openImageLink").removeAttribute("href");
+}
+
 async function exportImage() {
   saveMonth();
+  clearImagePreview();
+  const revision = previewRevision;
+  previewStatus.textContent = t("imagePreparing");
+  imagePreview.showModal();
+  document.body.classList.add("preview-open");
   imageButton.disabled = true;
   imageButton.querySelector("span:last-child").textContent = t("creating");
 
+  let canvas;
   try {
+    // Paint the preview before generating the full calendar.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     await waitForLogoImage();
-    const canvas = buildFullMonthImageCanvas(2);
-    const link = document.createElement("a");
-    link.download = `${appConfig.filename}-${monthNames[state.month]}-${state.year}.png`;
-    link.href = canvas.toDataURL("image/png");
-    link.click();
-    showToast(t("imageExported"));
+    if (revision !== previewRevision || !imagePreview.open) return;
+    canvas = buildFullMonthImageCanvas(2);
+    const blob = await new Promise((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("Empty canvas")), "image/png"));
+    if (revision !== previewRevision || !imagePreview.open) return;
+    previewFile = new File([blob], `${appConfig.filename}-${monthNames[state.month]}-${state.year}.png`, { type: "image/png" });
+    previewUrl = URL.createObjectURL(blob);
+    previewImage.src = previewUrl;
+    previewImage.hidden = false;
+    const download = document.querySelector("#downloadImageLink");
+    download.href = previewUrl;
+    download.download = previewFile.name;
+    document.querySelector("#openImageLink").href = previewUrl;
+    let canShare = false;
+    try { canShare = Boolean(navigator.share && navigator.canShare?.({ files: [previewFile] })); } catch { /* The preview remains usable when sharing is blocked. */ }
+    shareImageButton.hidden = !canShare;
+    shareImageButton.disabled = false;
+    previewHint.textContent = t(canShare ? "imageHint" : "imageFallbackHint");
+    previewHint.hidden = false;
+    previewActions.hidden = false;
+    previewStatus.textContent = "";
+  } catch {
+    if (revision === previewRevision) previewStatus.textContent = t("imageError");
   } finally {
+    // Release large canvas memory once the PNG is ready, especially on iOS.
+    if (canvas) { canvas.width = 0; canvas.height = 0; }
     imageButton.disabled = false;
     imageButton.querySelector("span:last-child").textContent = t("image");
   }
 }
+
+document.querySelector("#closeImagePreview").addEventListener("click", () => imagePreview.close());
+imagePreview.addEventListener("close", () => {
+  ++previewRevision;
+  document.body.classList.remove("preview-open");
+  // Keep the Blob alive for an image opened in a separate tab. Replaced on next export.
+});
+shareImageButton.addEventListener("click", async () => {
+  if (!previewFile) return;
+  shareImageButton.disabled = true;
+  previewStatus.textContent = "";
+  try {
+    // Must run directly from this tap, after the file has already been prepared.
+    await navigator.share({ files: [previewFile] });
+  } catch (error) {
+    if (error.name !== "AbortError") previewStatus.textContent = t("shareError");
+  } finally {
+    shareImageButton.disabled = false;
+  }
+});
 
 async function exportPdf() {
   clearTimeout(saveTimer);
@@ -717,6 +788,8 @@ function buildFullMonthImageCanvas(scale = 2) {
   }
 
   const height = padding * 2 + pageHeaderHeight + headerHeight + rows.reduce((sum, row) => sum + row.rowHeight, 0);
+  // Keep the bitmap below common mobile canvas limits, including long months.
+  scale = Math.min(scale, Math.sqrt(12000000 / (width * height)), 4096 / width, 16384 / height);
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
   canvas.height = height * scale;

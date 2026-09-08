@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="App Foglio di Preghiera" />
     <meta name="twitter:description" content="Calendario mensile dei soggetti di preghiera." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=474770c13757" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=474770c13757" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=474770c13757" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=474770c13757" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=b14118ec2b3c" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=b14118ec2b3c" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=b14118ec2b3c" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=b14118ec2b3c" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=474770c13757" />
+    <link rel="stylesheet" href="../styles.css?v=b14118ec2b3c" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -70,9 +70,9 @@
 
     <div id="appShell" hidden>
       <header class="app-header">
-        <div>
-          <p class="eyebrow">Gruppo italiano</p>
-          <h1>Foglio di preghiera</h1>
+        <div class="app-brand">
+          <img src="../assets/logo-italiano.jpeg" alt="" />
+          <div><p class="eyebrow">Gruppo italiano</p><h1>Foglio di preghiera</h1></div>
         </div>
 
         <div class="header-actions">
@@ -126,7 +126,7 @@
             </div>
 
             <div class="toolbar-group action-group" aria-label="Azioni">
-              <button id="previousMonthButton" class="accent-action" type="button">
+              <button id="previousMonthButton" class="accent-action" type="button" title="Importa soggetti da mese precedente">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M7 7h10"></path>
@@ -135,7 +135,7 @@
                     <path d="M10 14l-3 3 3 3"></path>
                   </svg>
                 </span>
-                <span>Importa soggetti da mese precedente</span>
+                <span>Dal mese precedente</span>
               </button>
               <button id="saveButton" class="success-action" type="button">
                 <span class="icon" aria-hidden="true">
@@ -204,10 +204,25 @@
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-    <script src="config.js?v=474770c13757"></script>
+    <dialog id="imagePreview" class="image-preview" aria-labelledby="imagePreviewTitle">
+      <header class="preview-header">
+        <div><p class="eyebrow">Immagine</p><h2 id="imagePreviewTitle">Anteprima immagine</h2></div>
+        <button type="button" id="closeImagePreview" class="preview-close" aria-label="Chiudi" autofocus>×</button>
+      </header>
+      <div class="preview-actions" id="imagePreviewActions" hidden>
+        <button type="button" id="shareImageButton" class="preview-primary" hidden>Condividi / Salva</button>
+        <a id="downloadImageLink" class="preview-secondary">Scarica PNG</a>
+        <a id="openImageLink" class="preview-secondary" target="_blank" rel="noopener">Apri immagine</a>
+      </div>
+      <p id="imagePreviewHint" class="preview-hint" hidden>Su iPhone: tocca Condividi / Salva e scegli Salva immagine o un’app. Puoi anche tenere premuta l’immagine per vedere le opzioni disponibili.</p>
+      <p id="imagePreviewStatus" class="preview-status" role="status" aria-live="polite"></p>
+      <div class="preview-canvas"><img id="previewImage" alt="Foglio mensile di preghiera" hidden /></div>
+    </dialog>
+
+    <script src="config.js?v=b14118ec2b3c"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../app.js?v=474770c13757"></script>
+    <script src="../app.js?v=b14118ec2b3c"></script>
   </body>
 </html>

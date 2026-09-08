@@ -33,7 +33,7 @@ window.PRAYER_APP = Object.freeze({
     "export": "Exportieren",
     "image": "Bild",
     "sheetLabel": "Monatlicher Gebetsplan",
-    "sheetTitle": "Gebetsanliegen und Kalender",
+    "sheetTitle": "Gebetsanliegen Kalender",
     "day": "Tag",
     "reading": "Bibellese",
     "subject": "Gebetsanliegen",
@@ -66,7 +66,18 @@ window.PRAYER_APP = Object.freeze({
     "loading": "Wird geladen…",
     "offline": "Keine Verbindung. Änderungen bleiben auf diesem Gerät gespeichert.",
     "importConfirm": "Gebetsanliegen von {previous} nach {current} übernehmen?\nDie bisherigen Anliegen werden ersetzt. Sonntage werden übersprungen und bleiben unverändert.",
-    "boldLetter": "F"
+    "boldLetter": "F",
+    "importShort": "Aus dem Vormonat",
+    "imagePreview": "Bildvorschau",
+    "close": "Schließen",
+    "shareImage": "Teilen / Sichern",
+    "downloadImage": "PNG herunterladen",
+    "openImage": "Bild öffnen",
+    "imageHint": "Auf dem iPhone: Tippe auf Teilen / Sichern und wähle Bild sichern oder eine App. Du kannst das Bild auch gedrückt halten, um die verfügbaren Optionen zu sehen.",
+    "imageFallbackHint": "Öffne das Bild, um es zu vergrößern. Auf dem iPhone kannst du es gedrückt halten, um die Optionen zum Sichern und Teilen aufzurufen.",
+    "imagePreparing": "Das Bild wird vorbereitet…",
+    "imageError": "Das Bild konnte nicht erstellt werden. Schließe die Vorschau und versuche es erneut.",
+    "shareError": "Teilen ist nicht verfügbar. Du kannst das Bild öffnen oder herunterladen."
   },
   "months": [
     "Januar",

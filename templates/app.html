@@ -70,9 +70,9 @@
 
     <div id="appShell" hidden>
       <header class="app-header">
-        <div>
-          <p class="eyebrow">{{group}}</p>
-          <h1>{{title}}</h1>
+        <div class="app-brand">
+          <img src="../assets/logo-italiano.jpeg" alt="" />
+          <div><p class="eyebrow">{{group}}</p><h1>{{title}}</h1></div>
         </div>
 
         <div class="header-actions">
@@ -126,7 +126,7 @@
             </div>
 
             <div class="toolbar-group action-group" aria-label="{{actions}}">
-              <button id="previousMonthButton" class="accent-action" type="button">
+              <button id="previousMonthButton" class="accent-action" type="button" title="{{import}}">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M7 7h10"></path>
@@ -135,7 +135,7 @@
                     <path d="M10 14l-3 3 3 3"></path>
                   </svg>
                 </span>
-                <span>{{import}}</span>
+                <span>{{importShort}}</span>
               </button>
               <button id="saveButton" class="success-action" type="button">
                 <span class="icon" aria-hidden="true">
@@ -203,6 +203,21 @@
     </footer>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog id="imagePreview" class="image-preview" aria-labelledby="imagePreviewTitle">
+      <header class="preview-header">
+        <div><p class="eyebrow">{{image}}</p><h2 id="imagePreviewTitle">{{imagePreview}}</h2></div>
+        <button type="button" id="closeImagePreview" class="preview-close" aria-label="{{close}}" autofocus>×</button>
+      </header>
+      <div class="preview-actions" id="imagePreviewActions" hidden>
+        <button type="button" id="shareImageButton" class="preview-primary" hidden>{{shareImage}}</button>
+        <a id="downloadImageLink" class="preview-secondary">{{downloadImage}}</a>
+        <a id="openImageLink" class="preview-secondary" target="_blank" rel="noopener">{{openImage}}</a>
+      </div>
+      <p id="imagePreviewHint" class="preview-hint" hidden>{{imageHint}}</p>
+      <p id="imagePreviewStatus" class="preview-status" role="status" aria-live="polite"></p>
+      <div class="preview-canvas"><img id="previewImage" alt="{{sheetLabel}}" hidden /></div>
+    </dialog>
 
     <script src="config.js?v={{version}}"></script>
     <script src="../supabase-config.js"></script>

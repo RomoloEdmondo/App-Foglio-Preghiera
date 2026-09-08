@@ -107,10 +107,62 @@ const server = createServer((req, res) => {
     const pdf = await pdfDownload;
     assert(pdf.suggestedFilename().startsWith('gebetsplan-'));
     await pdf.saveAs(resolve(output, 'german.pdf'));
-    const imageDownload = de.waitForEvent('download');
+    await de.evaluate(() => {
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false });
+    });
+    let imageDownloads = 0;
+    de.on('download', () => imageDownloads++);
     await de.locator('#imageButton').click();
+    await de.locator('#imagePreviewActions').waitFor({ state: 'visible' });
+    await de.waitForFunction(() => document.querySelector('#previewImage').naturalWidth > 0);
+    assert.equal(imageDownloads, 0, 'Image export must open a preview instead of claiming an automatic download');
+    assert(await de.locator('#shareImageButton').isHidden());
+    assert(await de.evaluate(() => previewImage.naturalWidth * previewImage.naturalHeight <= 12000000));
+    await de.setViewportSize({ width: 390, height: 844 });
+    await de.screenshot({ path: resolve(output, 'image-preview-mobile.png') });
+    const imageDownload = de.waitForEvent('download');
+    await de.locator('#downloadImageLink').click();
     const png = await imageDownload;
+    assert(png.suggestedFilename().startsWith('gebetsplan-'));
     await png.saveAs(resolve(output, 'german.png'));
+    const popupPromise = de.waitForEvent('popup');
+    await de.locator('#openImageLink').click();
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+    assert(popup.url().startsWith('blob:'));
+    await popup.close();
+    await de.locator('#closeImagePreview').click();
+    await de.evaluate(() => {
+      window.shareMode = 'success';
+      Object.defineProperty(navigator, 'canShare', { configurable: true, value: data => data.files?.[0]?.type === 'image/png' });
+      Object.defineProperty(navigator, 'share', { configurable: true, value: async data => {
+        window.sharedImage = { name: data.files[0].name, size: data.files[0].size, active: navigator.userActivation.isActive };
+        if (window.shareMode === 'cancel') throw new DOMException('Cancelled', 'AbortError');
+        if (window.shareMode === 'error') throw new DOMException('Unavailable', 'NotAllowedError');
+      } });
+    });
+    await de.locator('#imageButton').click();
+    await de.locator('#shareImageButton').waitFor({ state: 'visible' });
+    await de.locator('#shareImageButton').click();
+    assert(await de.evaluate(() => sharedImage.size > 0 && sharedImage.active && sharedImage.name.endsWith('.png')));
+    await de.evaluate(() => { window.shareMode = 'cancel'; });
+    await de.locator('#shareImageButton').click();
+    assert.equal(await de.locator('#imagePreviewStatus').textContent(), '');
+    await de.evaluate(() => { window.shareMode = 'error'; });
+    await de.locator('#shareImageButton').click();
+    assert((await de.locator('#imagePreviewStatus').textContent()).includes('nicht verfügbar'));
+    await de.keyboard.press('Escape');
+    assert(await de.locator('#imagePreview').isHidden());
+    await de.evaluate(() => {
+      window.originalToBlob = HTMLCanvasElement.prototype.toBlob;
+      HTMLCanvasElement.prototype.toBlob = function(callback) { callback(null); };
+    });
+    await de.locator('#imageButton').click();
+    await de.waitForFunction(() => document.querySelector('#imagePreviewStatus').textContent.includes('nicht erstellt'));
+    assert(await de.locator('#imagePreviewActions').isHidden());
+    await de.locator('#closeImagePreview').click();
+    await de.evaluate(() => { HTMLCanvasElement.prototype.toBlob = window.originalToBlob; });
+    await de.setViewportSize({ width: 1440, height: 1000 });
 
     const it = await open('it');
     await it.locator('#appShell').waitFor({ state: 'visible' });
@@ -167,7 +219,7 @@ const server = createServer((req, res) => {
     await login.locator('#loginCard').waitFor({ state: 'visible' });
     assert.equal(await login.locator('#daysBody tr').count(), 0);
     assert.deepEqual(errors, []);
-    console.log('PASS: IT/DE routing, login/logout, translation, independent persistence, reload, import, Sunday preservation, PDF/PNG, denied access, failed-save recovery, failed-load protection.');
+    console.log('PASS: IT/DE routing, login/logout, translation, independent persistence, reload, import, Sunday preservation, PDF, image preview/download/open, file sharing on tap, sharing cancellation/failure, canvas failure, mobile bitmap limit, denied access, failed-save recovery, failed-load protection.');
   } finally {
     await browser.close();
     server.close();

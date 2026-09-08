@@ -66,7 +66,18 @@ window.PRAYER_APP = Object.freeze({
     "loading": "Caricamento…",
     "offline": "Connessione non disponibile. Le modifiche restano salvate su questo dispositivo.",
     "importConfirm": "Importare i soggetti da {previous} a {current}?\nI soggetti attuali saranno sostituiti. Le domeniche saranno saltate e non verranno modificate.",
-    "boldLetter": "G"
+    "boldLetter": "G",
+    "importShort": "Dal mese precedente",
+    "imagePreview": "Anteprima immagine",
+    "close": "Chiudi",
+    "shareImage": "Condividi / Salva",
+    "downloadImage": "Scarica PNG",
+    "openImage": "Apri immagine",
+    "imageHint": "Su iPhone: tocca Condividi / Salva e scegli Salva immagine o un’app. Puoi anche tenere premuta l’immagine per vedere le opzioni disponibili.",
+    "imageFallbackHint": "Apri l’immagine per ingrandirla. Su iPhone puoi tenerla premuta per accedere alle opzioni di salvataggio e condivisione.",
+    "imagePreparing": "Preparazione dell’immagine…",
+    "imageError": "Non è stato possibile preparare l’immagine. Chiudi l’anteprima e riprova.",
+    "shareError": "Condivisione non disponibile. Puoi aprire l’immagine oppure scaricarla."
   },
   "months": [
     "gennaio",

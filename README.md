@@ -12,6 +12,8 @@ Entrambe usano il progetto Supabase configurato in `supabase-config.js`. Le chia
 
 Accesso con email e password, calendario mensile, salvataggio automatico, testo in grassetto, importazione dei soggetti dal mese precedente saltando le domeniche, PDF A4 orizzontale di due pagine e immagine PNG dell’intero mese. Interfaccia, calendario, messaggi ed esportazioni seguono la lingua dell’ingresso scelto. Il logo della chiesa è condiviso.
 
+Il pulsante Immagine apre un’anteprima con **Condividi / Salva**, **Scarica PNG** e **Apri immagine**. La condivisione appare quando il browser supporta l’invio di file e viene avviata direttamente dal tocco dell’utente, dopo aver preparato il PNG. Su iPhone si può usare il menu di condivisione oppure tenere premuta l’immagine. L’anteprima resta disponibile se si annulla la condivisione. La dimensione del canvas è limitata a 12 megapixel per contenere l’uso di memoria sui dispositivi mobili.
+
 Le copie locali sono separate per lingua e account. Le modifiche non sincronizzate restano sul dispositivo e possono essere salvate nuovamente dopo il ripristino della connessione. La vecchia copia locale dell’app italiana viene letta solo da account abilitati all’italiano. Aprire o visualizzare un mese non scrive dati: un errore di caricamento non crea né sovrascrive un foglio vuoto.
 
 ## Modificare e pubblicare
