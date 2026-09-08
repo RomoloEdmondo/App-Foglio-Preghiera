@@ -74,6 +74,25 @@ const server = createServer((req, res) => {
 
     const de = await open('de');
     await de.locator('#appShell').waitFor({ state: 'visible' });
+    await de.setViewportSize({ width: 1920, height: 1080 });
+    assert(await de.evaluate(() => {
+      const actions = document.querySelector('.action-group').getBoundingClientRect();
+      const exports = document.querySelector('.export-group').getBoundingClientRect();
+      const footer = document.querySelector('.app-footer').getBoundingClientRect();
+      const sheet = document.querySelector('.sheet').getBoundingClientRect();
+      return exports.left - actions.right < 30 && footer.top >= sheet.bottom;
+    }), 'Exports stay beside the other commands and the footer stays below the sheet');
+    await de.screenshot({ path: resolve(output, 'toolbar-wide.png') });
+    for (const width of [320, 390, 768]) {
+      await de.setViewportSize({ width, height: 844 });
+      assert(await de.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal page overflow');
+      await de.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await de.waitForFunction(() => Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom - innerHeight) < 2);
+      assert(await de.evaluate(() => document.querySelector('.app-footer').getBoundingClientRect().top >= document.querySelector('.sheet').getBoundingClientRect().bottom));
+      if (width === 390) await de.screenshot({ path: resolve(output, 'footer-mobile-bottom.png') });
+      await de.evaluate(() => window.scrollTo(0, 0));
+    }
+    await de.setViewportSize({ width: 1440, height: 1000 });
     assert.equal(await de.title(), 'Gebetsplan');
     assert.equal(await de.locator('#monthSelect option').nth(2).textContent(), 'März');
     assert.equal(await de.locator('th').nth(2).textContent(), 'Gebetsanliegen');

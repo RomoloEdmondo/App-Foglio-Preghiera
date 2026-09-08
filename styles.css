@@ -745,8 +745,9 @@ thead th:last-child {
 
 /* Shared screen treatment; printed calendars keep their existing layout. */
 @media screen {
-  body { background: #f3f1eb; }
-  .login-landing { min-height: calc(100svh - 58px); }
+  body { background: #f3f1eb; display: flex; flex-direction: column; min-height: 100vh; min-height: 100svh; padding-bottom: 0; }
+  #appShell { flex: 1 0 auto; min-width: 0; }
+  .login-landing { flex: 1 0 auto; min-height: 0; }
   .login-card { border-color: #deded3; border-radius: 18px; padding: clamp(24px, 5vw, 40px); box-shadow: 0 16px 48px rgba(36, 61, 49, 0.07); }
   .login-card h1 { font-size: clamp(1.9rem, 5vw, 2.35rem); line-height: 1.12; }
   .login-card .eyebrow { font-size: 0.69rem; letter-spacing: 0.12em; }
@@ -765,35 +766,42 @@ thead th:last-child {
   .language-option strong { font-size: 1.05rem; }
   .language-option small { font-size: 0.78rem; }
   .welcome-note { color: #788177; font-size: 0.76rem; line-height: 1.6; margin: 26px 0 0; }
-  .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 16px 24px; padding: 16px clamp(16px, 3vw, 36px); background: rgba(255, 253, 248, 0.97); border-bottom-color: #dce0d7; box-shadow: 0 2px 12px rgba(30, 53, 43, 0.025); align-items: center; }
+  .app-header { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 14px 16px; padding: 16px max(20px, calc((100% - 1400px) / 2)); background: #fffdf8; border-bottom-color: #dce0d7; box-shadow: 0 2px 12px rgba(30, 53, 43, 0.025); align-items: center; backdrop-filter: none; }
   .app-header > div:first-child { padding-top: 0; }
   .app-brand { display: flex; align-items: center; gap: 12px; min-width: 0; grid-column: 1; grid-row: 1; }
   .app-brand > img { width: 46px; height: 46px; object-fit: contain; border-radius: 8px; background: white; }
   .app-brand h1 { font-size: 1.48rem; line-height: 1.1; color: var(--accent-strong); }
   .app-brand .eyebrow { font-size: 0.62rem; letter-spacing: 0.11em; margin-bottom: 5px; }
   .header-actions { display: contents; }
-  .language-link { grid-row: 1; grid-column: 2; font-size: 0.8rem; text-decoration: none; border: 1px solid #dce1d8; border-radius: 8px; padding: 10px 12px; }
+  .language-link { grid-row: 1; grid-column: 2; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; font-size: 0.8rem; font-weight: 600; text-decoration: none; color: #35569a; background: #eef3ff; border: 1px solid #ccd8f0; border-radius: 9px; padding: 10px 12px; }
+  .language-link:hover { background: #e1eafb; border-color: #9bb3df; }
   .account-panel { grid-row: 1; grid-column: 3; gap: 12px; }
   .user-pill { max-width: 230px; gap: 6px; padding: 0; color: #647168; font-size: 0.76rem; font-weight: 500; }
-  .logout-button { min-height: 38px; background: transparent !important; color: #617065 !important; border: 1px solid #dce1d8; font-weight: 600; font-size: 0.8rem; }
-  .logout-button:hover, .logout-button:focus { background: #f4ede9 !important; color: #913e37 !important; box-shadow: none; }
-  .toolbar { grid-row: 2; grid-column: 1 / -1; justify-content: flex-start; gap: 14px; border-top: 1px solid #e6e8df; padding-top: 14px; }
-  .primary-tools, .action-group, .export-group { padding: 0; background: transparent; border: 0; gap: 8px; }
-  .export-group { margin-left: auto; padding-left: 14px; border-left: 1px solid #dce1d8; }
-  .export-group .group-label { position: static; padding: 0; margin-right: 4px; align-self: center; font-size: 0.62rem; letter-spacing: 0.08em; background: none; font-weight: 600; color: #788177; }
+  .logout-button { min-height: 44px; background: #fff0ed !important; color: #a23f35 !important; border: 1px solid #edcbc5; font-weight: 600; font-size: 0.8rem; }
+  .logout-button:hover, .logout-button:focus { background: #fbe0da !important; color: #913e37 !important; box-shadow: none; }
+  .toolbar { grid-row: 2; grid-column: 1 / -1; justify-content: flex-start; align-items: stretch; gap: 10px; border-top: 1px solid #e6e8df; padding-top: 14px; }
+  .primary-tools, .action-group, .export-group { padding: 10px; background: #f6f7f2; border: 1px solid #e1e5db; border-radius: 12px; gap: 8px; }
+  .action-group, .export-group { display: grid; grid-template-columns: auto auto; align-content: end; }
+  .export-group { margin-left: 0; }
+  .toolbar .group-label { position: static; grid-column: 1 / -1; padding: 0; margin: 0; align-self: start; font-size: 0.65rem; letter-spacing: 0.06em; background: none; font-weight: 600; color: #637061; }
   .toolbar label { font-size: 0.67rem; font-weight: 600; color: #788177; }
-  .toolbar select, .toolbar input, .toolbar button { min-height: 40px; border-color: #d4dbd0; box-shadow: none; font-size: 0.84rem; }
+  .toolbar select, .toolbar input, .toolbar button { min-height: 44px; border-color: #d4dbd0; box-shadow: none; font-size: 0.84rem; }
   .toolbar select, .toolbar input { background: #fff; }
   .toolbar button { padding: 0 12px; line-height: 1.2; font-weight: 600; }
-  .toolbar .accent-action, .toolbar .pdf-action, .toolbar .image-action, .toolbar #todayButton { background: #fff !important; border-color: #d4dbd0 !important; color: #40574b !important; }
-  .toolbar .accent-action:hover, .toolbar .pdf-action:hover, .toolbar .image-action:hover { background: #eef3ed !important; border-color: #9bad9d !important; }
+  .toolbar #todayButton { background: #fff !important; border-color: #d4dbd0 !important; color: #40574b !important; }
+  .toolbar .accent-action { background: #fff2dc !important; border-color: #e5c78d !important; color: #845310 !important; }
+  .toolbar .accent-action:hover { background: #ffe8bc !important; border-color: #cda454 !important; }
+  .toolbar .pdf-action { background: #fff0f1 !important; border-color: #ecc4ca !important; color: #a33449 !important; }
+  .toolbar .pdf-action:hover { background: #fbdce2 !important; border-color: #d995a3 !important; }
+  .toolbar .image-action { background: #edf2ff !important; border-color: #c1d0ee !important; color: #345b9f !important; }
+  .toolbar .image-action:hover { background: #dce7fc !important; border-color: #92acdd !important; }
   .toolbar .success-action { background: var(--accent) !important; border-color: var(--accent) !important; color: #fff !important; }
   .toolbar .success-action:hover { background: var(--accent-strong) !important; }
   #previousMonthButton { max-width: none; }
   .sheet { box-shadow: 0 10px 35px rgba(36, 61, 49, 0.07); border: 1px solid #dfdfd5; border-radius: 12px; }
   .sheet-page-header { padding: 12px 20px; }
   .sheet-page-header h2 { text-shadow: none; font-weight: 700; }
-  .app-footer { background: rgba(243, 241, 235, 0.97); box-shadow: none; color: #788177; font-weight: 400; font-size: 0.7rem; }
+  .app-footer { position: static; flex-shrink: 0; margin-top: auto; flex-wrap: wrap; background: #f3f1eb; backdrop-filter: none; box-shadow: none; color: #667160; font-weight: 400; font-size: 0.7rem; padding: 14px 16px max(14px, env(safe-area-inset-bottom)); }
   .app-footer a { font-weight: 500; }
 }
 
@@ -824,14 +832,13 @@ thead th:last-child {
   .language-link { font-size: 0.7rem; padding: 10px 8px; }
   .account-panel { grid-row: 2; grid-column: 1 / -1; display: flex; justify-content: space-between; width: 100%; flex-wrap: nowrap; }
   .user-pill { max-width: calc(100% - 110px); }
-  .toolbar { grid-row: 3; gap: 12px 8px; padding-top: 12px; }
-  .primary-tools { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 74px 40px auto; gap: 6px; }
+  .toolbar { grid-row: 3; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; padding-top: 12px; }
+  .primary-tools { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 72px 44px auto; gap: 6px; }
   .toolbar select, .toolbar input { width: 100%; min-width: 0; font-size: 16px; }
-  .toolbar button { padding: 0 9px; min-height: 42px; font-size: 0.78rem; }
+  .toolbar button { padding: 0 9px; min-height: 44px; font-size: 0.78rem; }
   .toolbar-group { flex-wrap: nowrap; }
-  .action-group { flex: 1 1 100%; display: grid; grid-template-columns: 1fr auto; }
-  .export-group { margin-left: 0; padding-left: 0; border-left: 0; }
-  .export-group .group-label { margin-right: 8px; }
+  .action-group, .export-group { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); padding: 10px; }
+  .export-group { margin-left: 0; }
   .sheet-page-header { gap: 8px; padding: 16px; }
   .sheet-page-header h2 { font-size: 1.3rem; line-height: 1.18; }
   .sheet-page-header img { max-height: 78px; }

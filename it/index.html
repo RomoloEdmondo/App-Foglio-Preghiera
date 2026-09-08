@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="App Foglio di Preghiera" />
     <meta name="twitter:description" content="Calendario mensile dei soggetti di preghiera." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=b14118ec2b3c" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=b14118ec2b3c" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=b14118ec2b3c" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=b14118ec2b3c" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=95d1cddb2d54" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=95d1cddb2d54" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=95d1cddb2d54" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=95d1cddb2d54" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=b14118ec2b3c" />
+    <link rel="stylesheet" href="../styles.css?v=95d1cddb2d54" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -76,7 +76,7 @@
         </div>
 
         <div class="header-actions">
-          <a class="language-link" href="../">Scegli lingua</a>
+          <a class="language-link" href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>Scegli lingua</span></a>
           <div class="account-panel" aria-label="Account">
             <div class="user-pill" title="Utente collegato">
               <span class="icon" aria-hidden="true">
@@ -90,8 +90,7 @@
             <button id="logoutButton" class="logout-button" type="button">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M12 3v8"></path>
-                  <path d="M6.7 6.8a8 8 0 1 0 10.6 0"></path>
+                  <path d="M10 4H4v16h6M10 12h11M17 8l4 4-4 4"></path>
                 </svg>
               </span>
               <span>Esci</span>
@@ -126,13 +125,11 @@
             </div>
 
             <div class="toolbar-group action-group" aria-label="Azioni">
+              <span class="group-label">Azioni</span>
               <button id="previousMonthButton" class="accent-action" type="button" title="Importa soggetti da mese precedente">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M7 7h10"></path>
-                    <path d="M14 4l3 3-3 3"></path>
-                    <path d="M17 17H7"></path>
-                    <path d="M10 14l-3 3 3 3"></path>
+                    <path d="M12 3v12M8 11l4 4 4-4M4 15v5h16v-5"></path>
                   </svg>
                 </span>
                 <span>Dal mese precedente</span>
@@ -152,6 +149,7 @@
             <div class="toolbar-group export-group" aria-label="Esporta mese">
               <span class="group-label">Esporta</span>
               <button id="printButton" class="pdf-action" type="button">
+                <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H5v18h14V8zM14 3v5h5M8 13h8M8 17h6"/></svg></span>
                 <span>PDF</span>
               </button>
               <button id="imageButton" class="image-action" type="button">
@@ -219,10 +217,10 @@
       <div class="preview-canvas"><img id="previewImage" alt="Foglio mensile di preghiera" hidden /></div>
     </dialog>
 
-    <script src="config.js?v=b14118ec2b3c"></script>
+    <script src="config.js?v=95d1cddb2d54"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../app.js?v=b14118ec2b3c"></script>
+    <script src="../app.js?v=95d1cddb2d54"></script>
   </body>
 </html>

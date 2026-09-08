@@ -76,7 +76,7 @@
         </div>
 
         <div class="header-actions">
-          <a class="language-link" href="../">{{chooseLanguage}}</a>
+          <a class="language-link" href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>{{chooseLanguage}}</span></a>
           <div class="account-panel" aria-label="{{account}}">
             <div class="user-pill" title="{{connectedUser}}">
               <span class="icon" aria-hidden="true">
@@ -90,8 +90,7 @@
             <button id="logoutButton" class="logout-button" type="button">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="M12 3v8"></path>
-                  <path d="M6.7 6.8a8 8 0 1 0 10.6 0"></path>
+                  <path d="M10 4H4v16h6M10 12h11M17 8l4 4-4 4"></path>
                 </svg>
               </span>
               <span>{{logout}}</span>
@@ -126,13 +125,11 @@
             </div>
 
             <div class="toolbar-group action-group" aria-label="{{actions}}">
+              <span class="group-label">{{actions}}</span>
               <button id="previousMonthButton" class="accent-action" type="button" title="{{import}}">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
-                    <path d="M7 7h10"></path>
-                    <path d="M14 4l3 3-3 3"></path>
-                    <path d="M17 17H7"></path>
-                    <path d="M10 14l-3 3 3 3"></path>
+                    <path d="M12 3v12M8 11l4 4 4-4M4 15v5h16v-5"></path>
                   </svg>
                 </span>
                 <span>{{importShort}}</span>
@@ -152,6 +149,7 @@
             <div class="toolbar-group export-group" aria-label="{{exportMonth}}">
               <span class="group-label">{{export}}</span>
               <button id="printButton" class="pdf-action" type="button">
+                <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H5v18h14V8zM14 3v5h5M8 13h8M8 17h6"/></svg></span>
                 <span>PDF</span>
               </button>
               <button id="imageButton" class="image-action" type="button">
