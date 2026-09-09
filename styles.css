@@ -28,6 +28,10 @@ a:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
 .language-option small { color: var(--muted); }
 .language-code { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 50%; background: var(--accent); color: white; font-weight: 700; }
 .language-link { justify-self: end; font-size: 0.9rem; }
+.language-option .language-code { flex: 0 0 auto; width: 44px; height: auto; gap: 5px; border-radius: 0; background: transparent; color: var(--accent); font-size: 0.75rem; }
+.language-flag { display: block; width: 36px; height: 24px; border-radius: 3px; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.language-flag-it { background: linear-gradient(to right, #009246 0 33.333%, #fff 33.333% 66.667%, #ce2b37 66.667% 100%); }
+.language-flag-de { background: linear-gradient(to bottom, #000 0 33.333%, #d00 33.333% 66.667%, #ffce00 66.667% 100%); }
 .access-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 
 * {
