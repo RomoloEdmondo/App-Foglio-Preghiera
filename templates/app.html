@@ -37,7 +37,7 @@
 
       <div class="login-card" id="loginCard">
         <img
-          src="../assets/logo-italiano.jpeg"
+          src="../assets/{{logoFile}}"
           alt="{{logoAlt}}"
           style="display:block;width:min(156px,42vw);max-height:150px;margin:0 auto 18px;object-fit:contain"
         />
@@ -71,14 +71,14 @@
     <div id="appShell" hidden>
       <header class="app-header">
         <div class="app-brand">
-          <img src="../assets/logo-italiano.jpeg" alt="" />
+          <img src="../assets/{{logoFile}}" alt="" />
           <div><p class="eyebrow">{{group}}</p><h1>{{title}}</h1></div>
         </div>
 
         <div class="header-actions">
-          <a class="language-link" href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>{{chooseLanguage}}</span></a>
+          <a id="languageLink" aria-label="{{chooseLanguage}}" title="{{chooseLanguage}}" class="language-link" hidden href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>{{chooseLanguage}}</span></a>
           <div class="account-panel" aria-label="{{account}}">
-            <div class="user-pill" title="{{connectedUser}}">
+            <button id="accountButton" class="user-pill" type="button" title="{{connectedUser}}" aria-expanded="false" aria-controls="accountDropdown">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                   <circle cx="12" cy="8" r="4"></circle>
@@ -86,7 +86,9 @@
                 </svg>
               </span>
               <span id="userEmail">{{signedIn}}</span>
-            </div>
+              <span class="account-chevron icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m6 9 6 6 6-6"/></svg></span>
+            </button>
+            <div id="accountDropdown" class="account-dropdown" hidden>
             <button id="logoutButton" class="logout-button" type="button">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -95,6 +97,7 @@
               </span>
               <span>{{logout}}</span>
             </button>
+            </div>
           </div>
 
           <div class="toolbar" aria-label="{{controls}}">
@@ -126,7 +129,7 @@
 
             <div class="toolbar-group action-group" aria-label="{{actions}}">
               <span class="group-label">{{actions}}</span>
-              <button id="previousMonthButton" class="accent-action" type="button" title="{{import}}">
+              <button id="previousMonthButton" aria-label="{{import}}" class="accent-action" type="button" title="{{import}}">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M12 3v12M8 11l4 4 4-4M4 15v5h16v-5"></path>
@@ -134,6 +137,8 @@
                 </span>
                 <span>{{importShort}}</span>
               </button>
+            </div>
+
               <button id="saveButton" class="success-action" type="button">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
@@ -144,7 +149,6 @@
                 </span>
                 <span>{{save}}</span>
               </button>
-            </div>
 
             <div class="toolbar-group export-group" aria-label="{{exportMonth}}">
               <span class="group-label">{{export}}</span>
@@ -170,7 +174,7 @@
       <main class="workspace">
         <section class="sheet" id="sheet" aria-label="{{sheetLabel}}">
           <header class="sheet-page-header">
-            <img id="churchLogo" src="../assets/logo-italiano.jpeg" alt="{{logoAlt}}" />
+            <img id="churchLogo" src="../assets/{{logoFile}}" alt="{{logoAlt}}" />
             <h2 id="sheetTitle">{{sheetTitle}}</h2>
           </header>
 

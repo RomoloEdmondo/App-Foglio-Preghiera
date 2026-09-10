@@ -11,7 +11,7 @@ const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '
 
 for (const lang of ['it', 'de']) {
   const config = JSON.parse(read(`locales/${lang}.json`));
-  const values = { ...config.messages, lang, version };
+  const values = { ...config.messages, lang, version, logoFile: lang === 'de' ? 'Logo-deutsch.jpeg' : 'logo-italiano.jpeg' };
   const html = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in values)) throw new Error(`Missing translation: ${lang}.${key}`);
     return escape(values[key]);

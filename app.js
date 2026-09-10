@@ -41,6 +41,13 @@ const appShell = document.querySelector("#appShell");
 const loginForm = document.querySelector("#loginForm");
 const emailInput = document.querySelector("#emailInput");
 const passwordInput = document.querySelector("#passwordInput");
+const languageLink = document.querySelector("#languageLink");
+const accountButton = document.querySelector("#accountButton");
+const accountDropdown = document.querySelector("#accountDropdown");
+function closeAccountDropdown() {
+  accountDropdown.hidden = true;
+  accountButton.setAttribute("aria-expanded", "false");
+}
 const logoutButton = document.querySelector("#logoutButton");
 const supabaseConfig = window.FOGLIO_PREGHIERA_SUPABASE || {};
 const supabaseClient =
@@ -223,20 +230,28 @@ function serializeEditableNode(node, bold = false) {
   }
 
   const isBold = bold || tag === "b" || tag === "strong" || Number.parseInt(node.style.fontWeight, 10) >= 600;
-  const content = [...node.childNodes].map((child) => serializeEditableNode(child, isBold)).join("");
+  const content = serializeEditableChildren(node, isBold);
 
   if (tag === "div" || tag === "p") {
-    return `${content}<br>`;
+    return content.endsWith("<br>") ? content : `${content}<br>`;
   }
 
   return content;
 }
 
+function serializeEditableChildren(element, bold = false) {
+  let html = "";
+  for (const child of element.childNodes) {
+    // Enter can produce text followed by a div: preserve its leading line break.
+    const isBlock = child.nodeType === Node.ELEMENT_NODE && /^(DIV|P)$/.test(child.tagName);
+    if (isBlock && html && !html.endsWith("<br>")) html += "<br>";
+    html += serializeEditableNode(child, bold);
+  }
+  return html;
+}
+
 function cleanEditableHtml(element) {
-  return [...element.childNodes]
-    .map((child) => serializeEditableNode(child))
-    .join("")
-    .replace(/(<br>)+$/g, "");
+  return serializeEditableChildren(element).replace(/(<br>)+$/g, "");
 }
 
 function normalizeEditableHtml(value) {
@@ -303,6 +318,8 @@ async function initAuth() {
 
 async function updateAuthState(session) {
   const revision = ++authRevision;
+  languageLink.hidden = true;
+  closeAccountDropdown();
   if (!session || session.user.id !== authorizedUserId) {
     if (imagePreview.open) imagePreview.close();
     clearImagePreview();
@@ -330,9 +347,9 @@ async function updateAuthState(session) {
   appShell.hidden = true;
   try {
     const { data, error } = await supabaseClient.from("prayer_group_members")
-      .select("language").eq("user_id", session.user.id).eq("language", appConfig.lang).maybeSingle();
+      .select("language").eq("user_id", session.user.id);
     if (revision !== authRevision) return;
-    if (error || !data) {
+    if (error || !data?.some(group => group.language === appConfig.lang)) {
       clearTimeout(saveTimer);
       ++loadRevision;
       authorizedUserId = null;
@@ -342,6 +359,7 @@ async function updateAuthState(session) {
       accessMessage.textContent = t(error ? "accessError" : "accessDenied");
       return;
     }
+    languageLink.hidden = !["it", "de"].every(lang => data.some(group => group.language === lang));
     authorizedUserId = session.user.id;
     await initApp();
     if (revision !== authRevision) return;
@@ -412,7 +430,24 @@ function initControls() {
   printButton.addEventListener("click", exportPdf);
   imageButton.addEventListener("click", exportImage);
 
+  accountButton.addEventListener("click", () => {
+    accountDropdown.hidden = !accountDropdown.hidden;
+    accountButton.setAttribute("aria-expanded", String(!accountDropdown.hidden));
+  });
+  document.addEventListener("click", event => {
+    if (!event.target.closest(".account-panel")) closeAccountDropdown();
+  });
+  document.addEventListener("focusin", event => {
+    if (!event.target.closest(".account-panel")) closeAccountDropdown();
+  });
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !accountDropdown.hidden) {
+      closeAccountDropdown();
+      accountButton.focus();
+    }
+  });
   logoutButton.addEventListener("click", async () => {
+    closeAccountDropdown();
     clearTimeout(saveTimer);
     await saveMonth();
     await supabaseClient.auth.signOut();

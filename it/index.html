@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="App Foglio di Preghiera" />
     <meta name="twitter:description" content="Calendario mensile dei soggetti di preghiera." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=95d1cddb2d54" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=95d1cddb2d54" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=95d1cddb2d54" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=95d1cddb2d54" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=27914ba3ed7e" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=27914ba3ed7e" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=27914ba3ed7e" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=27914ba3ed7e" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=95d1cddb2d54" />
+    <link rel="stylesheet" href="../styles.css?v=27914ba3ed7e" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -76,9 +76,9 @@
         </div>
 
         <div class="header-actions">
-          <a class="language-link" href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>Scegli lingua</span></a>
+          <a id="languageLink" aria-label="Scegli lingua" title="Scegli lingua" class="language-link" hidden href="../"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c5 5 5 13 0 18M12 3c-5 5-5 13 0 18"/></svg></span><span>Scegli lingua</span></a>
           <div class="account-panel" aria-label="Account">
-            <div class="user-pill" title="Utente collegato">
+            <button id="accountButton" class="user-pill" type="button" title="Utente collegato" aria-expanded="false" aria-controls="accountDropdown">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
                   <circle cx="12" cy="8" r="4"></circle>
@@ -86,7 +86,9 @@
                 </svg>
               </span>
               <span id="userEmail">Accesso effettuato</span>
-            </div>
+              <span class="account-chevron icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m6 9 6 6 6-6"/></svg></span>
+            </button>
+            <div id="accountDropdown" class="account-dropdown" hidden>
             <button id="logoutButton" class="logout-button" type="button">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -95,6 +97,7 @@
               </span>
               <span>Esci</span>
             </button>
+            </div>
           </div>
 
           <div class="toolbar" aria-label="Controlli del foglio">
@@ -126,7 +129,7 @@
 
             <div class="toolbar-group action-group" aria-label="Azioni">
               <span class="group-label">Azioni</span>
-              <button id="previousMonthButton" class="accent-action" type="button" title="Importa soggetti da mese precedente">
+              <button id="previousMonthButton" aria-label="Importa soggetti da mese precedente" class="accent-action" type="button" title="Importa soggetti da mese precedente">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
                     <path d="M12 3v12M8 11l4 4 4-4M4 15v5h16v-5"></path>
@@ -134,6 +137,8 @@
                 </span>
                 <span>Dal mese precedente</span>
               </button>
+            </div>
+
               <button id="saveButton" class="success-action" type="button">
                 <span class="icon" aria-hidden="true">
                   <svg viewBox="0 0 24 24" focusable="false">
@@ -144,7 +149,6 @@
                 </span>
                 <span>Salva</span>
               </button>
-            </div>
 
             <div class="toolbar-group export-group" aria-label="Esporta mese">
               <span class="group-label">Esporta</span>
@@ -217,10 +221,10 @@
       <div class="preview-canvas"><img id="previewImage" alt="Foglio mensile di preghiera" hidden /></div>
     </dialog>
 
-    <script src="config.js?v=95d1cddb2d54"></script>
+    <script src="config.js?v=27914ba3ed7e"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../app.js?v=95d1cddb2d54"></script>
+    <script src="../app.js?v=27914ba3ed7e"></script>
   </body>
 </html>

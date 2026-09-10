@@ -45,7 +45,7 @@ const server = createServer((req, res) => {
       const table = url.pathname.split('/').pop();
       if (table === 'prayer_group_members') {
         const language = url.searchParams.get('language')?.slice(3);
-        return json(allowed.includes(language) ? { language } : null);
+        return json(language ? (allowed.includes(language) ? { language } : null) : allowed.map(language => ({ language })));
       }
       if (!db[table]) return json({ message: 'Unexpected API request' }, 500);
       if (req.method() === 'POST') {
@@ -74,14 +74,29 @@ const server = createServer((req, res) => {
 
     const de = await open('de');
     await de.locator('#appShell').waitFor({ state: 'visible' });
+    assert(await de.locator('#languageLink').isVisible());
+    assert(await de.locator('#logoutButton').isHidden());
+    await de.locator('#accountButton').click();
+    assert(await de.locator('#logoutButton').isVisible());
+    await de.keyboard.press('Escape');
+    assert(await de.locator('#logoutButton').isHidden());
+    for (const lang of ['it', 'de']) {
+      const single = await open(lang, [lang]);
+      assert(await single.locator('#languageLink').isHidden());
+      await single.locator('#accountButton').click();
+      assert.equal((await single.locator('#logoutButton').innerText()).trim(), lang === 'it' ? 'Esci' : 'Abmelden');
+      await single.locator('.app-brand').click();
+      assert(await single.locator('#logoutButton').isHidden());
+      await single.close();
+    }
     await de.setViewportSize({ width: 1920, height: 1080 });
     assert(await de.evaluate(() => {
       const actions = document.querySelector('.action-group').getBoundingClientRect();
       const exports = document.querySelector('.export-group').getBoundingClientRect();
       const footer = document.querySelector('.app-footer').getBoundingClientRect();
       const sheet = document.querySelector('.sheet').getBoundingClientRect();
-      return exports.left - actions.right < 30 && footer.top >= sheet.bottom;
-    }), 'Exports stay beside the other commands and the footer stays below the sheet');
+      return exports.left > actions.right + 30 && Math.abs(exports.right - document.querySelector('.account-panel').getBoundingClientRect().right) < 2 && footer.top >= sheet.bottom;
+    }), 'Exports align right below the account and the footer stays below the sheet');
     await de.screenshot({ path: resolve(output, 'toolbar-wide.png') });
     for (const width of [320, 390, 768]) {
       await de.setViewportSize({ width, height: 844 });
@@ -91,6 +106,7 @@ const server = createServer((req, res) => {
       assert(await de.evaluate(() => document.querySelector('.app-footer').getBoundingClientRect().top >= document.querySelector('.sheet').getBoundingClientRect().bottom));
       if (width === 390) await de.screenshot({ path: resolve(output, 'footer-mobile-bottom.png') });
       await de.evaluate(() => window.scrollTo(0, 0));
+      if (width === 390) await de.screenshot({ path: resolve(output, "toolbar-mobile.png") });
     }
     await de.setViewportSize({ width: 1440, height: 1000 });
     assert.equal(await de.title(), 'Gebetsplan');
@@ -106,6 +122,37 @@ const server = createServer((req, res) => {
     await de.reload();
     await de.locator('#appShell').waitFor({ state: 'visible' });
     assert.equal(await de.locator('[data-key="subject"]').first().textContent(), germanText);
+    for (const lang of ['it', 'de']) {
+      const multiline = await open(lang);
+      for (const key of ['reading', 'subject']) {
+        const field = multiline.locator('[data-key="' + key + '"]').first();
+        await field.fill('Salmo 23');
+        await field.press('End');
+        await field.press('Enter');
+        await multiline.keyboard.type('Giovanni 3');
+        await field.press('Enter');
+        await field.press('Enter');
+        await multiline.keyboard.type('Romani 8');
+      }
+      await multiline.locator('#saveButton').click();
+      await multiline.waitForFunction(() => !dirty);
+      // Remove the local cache so reopening verifies the saved server content.
+      await multiline.evaluate(() => {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith('foglio-preghiera:')) localStorage.removeItem(key);
+        }
+      });
+      await multiline.reload();
+      await multiline.locator('#appShell').waitFor({ state: 'visible' });
+      for (const key of ['reading', 'subject']) {
+        await multiline.waitForFunction(key => {
+          const field = document.querySelector('[data-key="' + key + '"]');
+          return !document.querySelector('#appShell').hidden && field?.innerText === 'Salmo 23\nGiovanni 3\n\nRomani 8';
+        }, key);
+        assert.equal(await multiline.locator('[data-key="' + key + '"]').first().innerText(), 'Salmo 23\nGiovanni 3\n\nRomani 8');
+      }
+      await multiline.close();
+    }
     const current = await de.evaluate(() => ({ year: state.year, month: state.month }));
     const previous = current.month === 0 ? { year: current.year-1, month: 11 } : { year: current.year, month: current.month-1 };
     db.prayer_months_de[`${previous.year}-${previous.month+1}`] = { days: { 1: { subject: '<strong>Gemeinsam beten</strong>' }, 2: { subject: 'Für die Gemeinde' }, 3: { subject: 'Für die Kinder' } } };
@@ -234,6 +281,7 @@ const server = createServer((req, res) => {
     await login.locator('#passwordInput').fill('Test-password-123!');
     await login.locator('button[type="submit"]').click();
     await login.locator('#appShell').waitFor({ state: 'visible' });
+    await login.locator('#accountButton').click();
     await login.locator('#logoutButton').click();
     await login.locator('#loginCard').waitFor({ state: 'visible' });
     assert.equal(await login.locator('#daysBody tr').count(), 0);

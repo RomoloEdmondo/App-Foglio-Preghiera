@@ -759,7 +759,7 @@ thead th:last-child {
   .auth-form label { width: 100%; }
   .auth-form button { min-height: 46px; }
   .welcome-page .language-card { width: min(560px, 100%); text-align: center; }
-  .welcome-page .language-card > img { width: 100px; max-height: 96px; margin-bottom: 22px; }
+  .welcome-page .language-card > img { width: 120; max-height: 125px; margin-bottom: 22px; }
   .welcome-page h1 { margin-top: 14px; }
   .welcome-page h1 span { display: inline-block; margin-top: 8px; font-size: 0.72em; font-weight: 400; color: #617166; }
   .language-intro { margin: 24px 0; font-size: 0.94rem; }
@@ -986,4 +986,70 @@ thead th:last-child {
   .editable {
     break-inside: avoid;
   }
+}
+
+@media screen {
+  .account-panel { position: relative; justify-self: end; }
+  .account-panel .user-pill { max-width: 300px; min-height: 44px; padding: 6px 12px 6px 6px; gap: 10px; border: 1px solid #cbd8ce; border-radius: 12px; background: #fff; color: var(--accent-strong); font-weight: 600; box-shadow: 0 2px 5px #203d3008; cursor: pointer; transition: border-color 150ms ease, background 150ms ease, box-shadow 150ms ease; }
+  .account-panel .user-pill > .icon:first-child { display: grid; place-items: center; flex: 0 0 30px; height: 30px; border-radius: 9px; background: #edf3ee; color: var(--accent); }
+  .account-panel .user-pill:hover, .account-panel .user-pill[aria-expanded="true"] { border-color: #89aa98; background: #f6f9f6; box-shadow: 0 3px 10px #203d3010; }
+  .account-panel .user-pill:focus-visible { outline: 3px solid #aac8b5; outline-offset: 3px; }
+  #userEmail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .account-chevron { display: inline-flex; width: 16px; height: 16px; margin-left: 4px; color: #718779; flex-shrink: 0; transition: transform 150ms ease; }
+  .user-pill[aria-expanded="true"] .account-chevron { transform: rotate(180deg); }
+  .account-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 30; min-width: 170px; padding: 6px; background: #fff; border: 1px solid #e1e5db; border-radius: 12px; box-shadow: 0 8px 24px #203d3026; }
+  .account-dropdown .logout-button { width: 100%; justify-content: flex-start; }
+  .toolbar .action-group { grid-template-columns: auto; }
+  .toolbar > #saveButton { align-self: end; margin-bottom: 11px; margin-left: 18px; }
+  .toolbar .export-group { margin-left: auto; }
+  .toolbar .pdf-action { background: #fff !important; color: #b73546 !important; border: 1px solid #ce5866 !important; }
+  .toolbar .pdf-action:hover { background: #fff1f2 !important; border-color: #b73546 !important; }
+  .toolbar .image-action { background: #fff !important; color: #395fb2 !important; border: 1px solid #6b88ca !important; }
+  .toolbar .image-action:hover { background: #eef3ff !important; border-color: #395fb2 !important; }
+  .toolbar .pdf-action, .toolbar .image-action { border-radius: 9px; transition: background 150ms ease, border-color 150ms ease; }
+  .toolbar .pdf-action:focus-visible, .toolbar .image-action:focus-visible { outline: 3px solid #bac8dc; outline-offset: 3px; }
+}
+@media screen and (max-width: 760px) {
+  .account-panel { justify-content: flex-end; }
+  .toolbar > #saveButton { margin-left: 6px; }
+  .account-panel .user-pill { max-width: 100%; }
+  .toolbar { grid-template-columns: minmax(0, 1fr) auto; }
+  .toolbar .primary-tools { grid-column: 1 / -1; }
+  .toolbar .export-group { grid-column: 1 / -1; justify-self: end; }
+}
+
+@media screen and (max-width: 760px) {
+  .app-header { grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px 6px; padding: 10px 12px; }
+  .app-brand { gap: 6px; }
+  .app-brand h1 { font-size: 1rem; }
+  .app-brand .eyebrow { font-size: 0.5rem; margin-bottom: 3px; }
+  .app-brand > img { width: 26px; height: 32px; }
+  .language-link { grid-row: 1; grid-column: 2; width: 44px; padding: 0; }
+  .language-link > span:last-child { display: none; }
+  .account-panel { grid-row: 1; grid-column: 3; width: auto; min-width: 0; }
+  .account-panel .user-pill { max-width: 144px; padding: 5px 7px; gap: 5px; font-size: 0.68rem; }
+  .account-panel .user-pill > .icon:first-child { flex-basis: 24px; height: 28px; }
+  .account-chevron { width: 12px; margin-left: 0; }
+  .toolbar { grid-row: 2; grid-template-columns: 44px auto minmax(0, 1fr); gap: 8px 6px; padding-top: 8px; }
+  .toolbar .primary-tools { padding: 6px; gap: 5px; grid-template-columns: minmax(0, 1fr) 76px 44px auto; border-radius: 9px; }
+  .toolbar .action-group, .toolbar .export-group { padding: 0; border: 0; background: none; border-radius: 0; }
+  .toolbar .action-group { grid-column: 1; }
+  .toolbar .group-label { display: none; }
+  .toolbar button { padding: 0 7px; font-size: 0.72rem; }
+  #previousMonthButton { width: 44px; }
+  #previousMonthButton > span:last-child { display: none; }
+  .toolbar > #saveButton { grid-column: 2; align-self: stretch; margin: 0 2px 0 4px; }
+  #saveButton > .icon { display: none; }
+  .toolbar .export-group { grid-column: 3; grid-template-columns: auto auto; gap: 6px; align-self: stretch; }
+  .toolbar .export-group .icon { display: none; }
+}
+@media screen and (max-width: 360px) {
+  .account-panel .user-pill { max-width: 118px; }
+  .account-panel .user-pill > .icon:first-child { display: none; }
+  .app-brand > img { width: 22px; }
+}
+
+@media screen and (max-width: 760px) {
+  .toolbar #yearInput { padding-left: 6px; padding-right: 2px; }
+  .toolbar .export-group button { min-width: 44px; }
 }
