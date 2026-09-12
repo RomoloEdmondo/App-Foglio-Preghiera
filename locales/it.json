@@ -76,7 +76,10 @@
     "imageFallbackHint": "Apri l’immagine per ingrandirla. Su iPhone puoi tenerla premuta per accedere alle opzioni di salvataggio e condivisione.",
     "imagePreparing": "Preparazione dell’immagine…",
     "imageError": "Non è stato possibile preparare l’immagine. Chiudi l’anteprima e riprova.",
-    "shareError": "Condivisione non disponibile. Puoi aprire l’immagine oppure scaricarla."
+    "shareError": "Condivisione non disponibile. Puoi aprire l’immagine oppure scaricarla.",
+    "wordTitle": "Esporta in Word (.docx)",
+    "wordExported": "File Word esportato.",
+    "wordError": "Impossibile creare il file Word. Riprova."
   },
   "months": [
     "gennaio",

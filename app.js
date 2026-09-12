@@ -1,4 +1,5 @@
 const appConfig = window.PRAYER_APP;
+const hasReadingColumn = appConfig.lang !== "de";
 const monthNames = appConfig.months;
 const weekdayNames = appConfig.weekdays;
 function t(key, values = {}) {
@@ -23,6 +24,7 @@ const monthSelect = document.querySelector("#monthSelect");
 const yearInput = document.querySelector("#yearInput");
 const todayButton = document.querySelector("#todayButton");
 const printButton = document.querySelector("#printButton");
+const wordButton = document.querySelector("#wordButton");
 const imageButton = document.querySelector("#imageButton");
 const previousMonthButton = document.querySelector("#previousMonthButton");
 const saveButton = document.querySelector("#saveButton");
@@ -77,7 +79,7 @@ let navigationBusy = false;
 
 function setMonthBusy(busy) {
   navigationBusy = busy;
-  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton]) control.disabled = busy;
+  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton]) control.disabled = busy;
   daysBody.querySelectorAll('.editable').forEach(field => { field.contentEditable = String(!busy); });
 }
 
@@ -429,6 +431,7 @@ function initControls() {
   todayButton.addEventListener("click", goToCurrentMonth);
   printButton.addEventListener("click", exportPdf);
   imageButton.addEventListener("click", exportImage);
+  wordButton.addEventListener("click", exportWord);
 
   accountButton.addEventListener("click", () => {
     accountDropdown.hidden = !accountDropdown.hidden;
@@ -626,7 +629,9 @@ function render() {
     subjectField.classList.add("subject-field");
     subjectCell.append(subjectField);
 
-    tr.append(dateCell, readingCell, subjectCell);
+    tr.append(dateCell);
+    if (hasReadingColumn) tr.append(readingCell);
+    tr.append(subjectCell);
     daysBody.append(tr);
   }
 
@@ -750,6 +755,66 @@ shareImageButton.addEventListener("click", async () => {
   }
 });
 
+async function exportWord() {
+  clearTimeout(saveTimer);
+  wordButton.disabled = true;
+  wordButton.lastElementChild.textContent = t("creating");
+  try {
+    await saveMonth();
+    const { Document, Paragraph, TextRun, Table, TableRow, TableCell, Packer, ImageRun } = window.docx;
+    const widths = hasReadingColumn ? [1100, 2200, 12338] : [1100, 14538];
+    const cell = (paragraphs, index, fill = "FFFFFF") => new TableCell({
+      width: { size: widths[index], type: "dxa" },
+      shading: { fill },
+      margins: { top: 65, bottom: 65, left: 100, right: 100 },
+      children: paragraphs,
+    });
+    const labels = hasReadingColumn ? [t("day"), t("reading"), t("subject")] : [t("day"), t("subject")];
+    const rows = [new TableRow({ tableHeader: true, children: labels.map((text, i) => cell([
+      new Paragraph({ children: [new TextRun({ text, bold: true, color: "FFFFFF" })] }),
+    ], i, "2F6F61")) })];
+    for (let day = 1; day <= daysInMonth(state.year, state.month); day++) {
+      const data = state.days[day] || {};
+      const date = new Date(state.year, state.month, day);
+      const values = hasReadingColumn ? [data.reading || "", data.subject || ""] : [data.subject || ""];
+      const fill = date.getDay() === 0 ? "FDE8EF" : "FFFFFF";
+      rows.push(new TableRow({ children: [
+        cell([new Paragraph({ children: [new TextRun({ text: String(day), bold: true })] }), new Paragraph({ text: weekdayNames[date.getDay()] })], 0, fill),
+        ...values.map((value, i) => cell(richHtmlToParagraphs(value).map(runs => new Paragraph({
+          children: runs.map(run => new TextRun({ text: run.text, bold: run.bold })),
+        })), i + 1, fill)),
+      ] }));
+    }
+    const logoResponse = await fetch(logoImage.src);
+    if (!logoResponse.ok) throw new Error("Logo unavailable");
+    const logo = new ImageRun({ type: "jpg", data: await logoResponse.arrayBuffer(), transformation: { width: 65, height: 65 * (logoImage.naturalHeight || 1) / (logoImage.naturalWidth || 1) }, altText: { title: logoImage.alt, description: logoImage.alt, name: "Logo" } });
+    const doc = new Document({
+      title: monthTitle(),
+      styles: { default: { document: { run: { font: "Arial", size: 20 }, paragraph: { spacing: { after: 0 } } } } },
+      sections: [{ properties: { page: { size: { width: 11906, height: 16838, orientation: "landscape" }, margin: { top: 600, bottom: 600, left: 600, right: 600 } } }, children: [
+        new Paragraph({ alignment: "center", spacing: { after: 160 }, children: [logo] }),
+        new Paragraph({ alignment: "center", spacing: { after: 200 }, children: [new TextRun({ text: monthTitle(), size: 32, bold: true, color: "215447" })] }),
+        new Table({ width: { size: 15638, type: "dxa" }, columnWidths: widths, layout: "fixed", rows }),
+      ] }],
+    });
+    const url = URL.createObjectURL(await Packer.toBlob(doc));
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${appConfig.filename}-${monthNames[state.month]}-${state.year}.docx`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+    showToast(t("wordExported"));
+  } catch (error) {
+    console.error("Word export failed", error);
+    showToast(t("wordError"), "warning");
+  } finally {
+    wordButton.disabled = navigationBusy;
+    wordButton.lastElementChild.textContent = "Word";
+  }
+}
+
 async function exportPdf() {
   clearTimeout(saveTimer);
   printButton.disabled = true;
@@ -808,7 +873,7 @@ function buildFullMonthImageCanvas(scale = 2) {
   const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
   const minRowHeight = 66;
   const col1 = 138;
-  const col2 = 260;
+  const col2 = hasReadingColumn ? 260 : 0;
   const col3 = width - padding * 2 - col1 - col2;
   const rows = [];
   const measureCanvas = document.createElement("canvas");
@@ -816,7 +881,7 @@ function buildFullMonthImageCanvas(scale = 2) {
 
   for (let day = 1; day <= totalDays; day += 1) {
     const data = state.days[day] || {};
-    const readingLines = wrapRichText(measureCtx, data.reading || "", col2 - 20, "23px Arial", "bold 23px Arial");
+    const readingLines = !hasReadingColumn ? [] : wrapRichText(measureCtx, data.reading || "", col2 - 20, "23px Arial", "bold 23px Arial");
     const subjectLines = wrapRichText(measureCtx, data.subject || "", col3 - 24, "27px Arial", "bold 27px Arial");
     const rowHeight = Math.max(minRowHeight, Math.max(readingLines.length * 28, subjectLines.length * 31, 73) + 18);
     rows.push({ day, readingLines, subjectLines, rowHeight });
@@ -853,9 +918,9 @@ function buildFullMonthImageCanvas(scale = 2) {
 
   drawFilledRect(ctx, left, y, right - left, headerHeight, "#2f6f61", 3);
   drawLine(ctx, left + col1, y, left + col1, y + headerHeight, 3);
-  drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
+  if (hasReadingColumn) drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
   drawCenteredText(ctx, t("day").toLocaleUpperCase(appConfig.lang), left, y, col1, headerHeight, "bold 18px Arial", "#fff");
-  drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
+  if (hasReadingColumn) drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
   drawCenteredText(ctx, t("subject").toLocaleUpperCase(appConfig.lang), left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
   y += headerHeight;
 
@@ -867,10 +932,10 @@ function buildFullMonthImageCanvas(scale = 2) {
     }
     drawRect(ctx, left, y, right - left, row.rowHeight, 3);
     drawLine(ctx, left + col1, y, left + col1, y + row.rowHeight, 3);
-    drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.rowHeight, 3);
+    if (hasReadingColumn) drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.rowHeight, 3);
     drawCellText(ctx, String(row.day), left + 10, y + 27, col1 - 20, "bold 25px Arial", "#1e1c18", 29);
     drawCellText(ctx, weekdayNames[date.getDay()], left + 10, y + 53, col1 - 20, "bold 15px Arial", "#6f675b", 20);
-    drawRichLines(ctx, row.readingLines, left + col1 + 10, y + 25, col2 - 20, "23px Arial", "bold 23px Arial", 28);
+    if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, y + 25, col2 - 20, "23px Arial", "bold 23px Arial", 28);
     drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, y + 27, col3 - 24, "27px Arial", "bold 27px Arial", 31);
     y += row.rowHeight;
   }
@@ -887,7 +952,7 @@ function buildExportCanvas(scale = 2) {
   const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
   const minRowHeight = 66;
   const col1 = 138;
-  const col2 = 260;
+  const col2 = hasReadingColumn ? 260 : 0;
   const col3 = width - padding * 2 - col1 - col2;
   const measureCanvas = document.createElement("canvas");
   const measureCtx = measureCanvas.getContext("2d");
@@ -926,9 +991,9 @@ function buildExportCanvas(scale = 2) {
 
     drawFilledRect(ctx, left, y, right - left, headerHeight, "#2f6f61", 3);
     drawLine(ctx, left + col1, y, left + col1, y + headerHeight, 3);
-    drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
+    if (hasReadingColumn) drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + headerHeight, 3);
     drawCenteredText(ctx, t("day").toLocaleUpperCase(appConfig.lang), left, y, col1, headerHeight, "bold 18px Arial", "#fff");
-    drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
+    if (hasReadingColumn) drawCenteredText(ctx, t("reading").toLocaleUpperCase(appConfig.lang), left + col1, y, col2, headerHeight, "bold 18px Arial", "#fff");
     drawCenteredText(ctx, t("subject").toLocaleUpperCase(appConfig.lang), left + col1 + col2, y, col3, headerHeight, "bold 18px Arial", "#fff");
     y += headerHeight;
 
@@ -941,14 +1006,14 @@ function buildExportCanvas(scale = 2) {
       }
       drawRect(ctx, left, y, right - left, row.fittedHeight, 3);
       drawLine(ctx, left + col1, y, left + col1, y + row.fittedHeight, 3);
-      drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.fittedHeight, 3);
+      if (hasReadingColumn) drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.fittedHeight, 3);
       ctx.save();
       ctx.beginPath();
       ctx.rect(left, y, right - left, row.fittedHeight);
       ctx.clip();
       drawCellText(ctx, String(row.day), left + 10, y + metrics.dayY, col1 - 20, metrics.dayFont, "#1e1c18", metrics.dayLineHeight);
       drawCellText(ctx, weekdayNames[date.getDay()], left + 10, y + metrics.weekdayY, col1 - 20, metrics.weekdayFont, "#6f675b", metrics.weekdayLineHeight);
-      drawRichLines(ctx, row.readingLines, left + col1 + 10, y + metrics.readingY, col2 - 20, metrics.readingFont, metrics.readingBoldFont, metrics.readingLineHeight);
+      if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, y + metrics.readingY, col2 - 20, metrics.readingFont, metrics.readingBoldFont, metrics.readingLineHeight);
       drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, y + metrics.subjectY, col3 - 24, metrics.subjectFont, metrics.subjectBoldFont, metrics.subjectLineHeight);
       ctx.restore();
       y += row.fittedHeight;
@@ -1020,7 +1085,7 @@ function buildExportRows(totalDays, measureCtx, col2, col3, metrics) {
 
   for (let day = 1; day <= totalDays; day += 1) {
     const data = state.days[day] || {};
-    const readingLines = wrapRichText(measureCtx, data.reading || "", col2 - 20, metrics.readingFont, metrics.readingBoldFont);
+    const readingLines = !hasReadingColumn ? [] : wrapRichText(measureCtx, data.reading || "", col2 - 20, metrics.readingFont, metrics.readingBoldFont);
     const subjectLines = wrapRichText(measureCtx, data.subject || "", col3 - 24, metrics.subjectFont, metrics.subjectBoldFont);
     const textHeight = Math.max(
       readingLines.length * metrics.readingLineHeight,

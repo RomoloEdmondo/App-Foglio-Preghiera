@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="Gebetsplan" />
     <meta name="twitter:description" content="Monatlicher Kalender mit Gebetsanliegen." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=27914ba3ed7e" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=27914ba3ed7e" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=27914ba3ed7e" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=27914ba3ed7e" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=3b1cd212702b" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=3b1cd212702b" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=3b1cd212702b" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=3b1cd212702b" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=27914ba3ed7e" />
+    <link rel="stylesheet" href="../styles.css?v=3b1cd212702b" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -166,6 +166,7 @@
                 </span>
                 <span>Bild</span>
               </button>
+              <button id="wordButton" class="word-action" type="button" title="Als Word (.docx) exportieren"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H5v18h14V8zM14 3v5h5M7 12l2 6 3-5 3 5 2-6"/></svg></span><span>Word</span></button>
             </div>
           </div>
         </div>
@@ -182,13 +183,11 @@
             <table class="prayer-table">
               <colgroup>
                 <col class="date-col" />
-                <col class="reading-col" />
                 <col class="subject-col" />
               </colgroup>
               <thead>
                 <tr>
                   <th>Tag</th>
-                  <th>Bibellese</th>
                   <th>Gebetsanliegen</th>
                 </tr>
               </thead>
@@ -221,10 +220,11 @@
       <div class="preview-canvas"><img id="previewImage" alt="Monatlicher Gebetsplan" hidden /></div>
     </dialog>
 
-    <script src="config.js?v=27914ba3ed7e"></script>
+    <script src="config.js?v=3b1cd212702b"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../app.js?v=27914ba3ed7e"></script>
+    <script src="../assets/vendor/docx.js?v=3b1cd212702b"></script>
+    <script src="../app.js?v=3b1cd212702b"></script>
   </body>
 </html>

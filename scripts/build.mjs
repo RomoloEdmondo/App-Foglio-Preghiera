@@ -1,10 +1,13 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, copyFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
 const read = (path) => readFileSync(resolve(root, path), 'utf8').replaceAll('\r\n', '\n');
+mkdirSync(resolve(root, 'assets/vendor'), { recursive: true });
+copyFileSync(resolve(root, 'node_modules/docx/dist/index.iife.js'), resolve(root, 'assets/vendor/docx.js'));
+copyFileSync(resolve(root, 'node_modules/docx/LICENSE'), resolve(root, 'assets/vendor/docx-LICENSE'));
 const template = read('templates/app.html');
 const version = createHash('sha256').update(read('app.js') + read('styles.css') + template + read('locales/it.json') + read('locales/de.json')).digest('hex').slice(0, 12);
 const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
@@ -12,7 +15,8 @@ const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '
 for (const lang of ['it', 'de']) {
   const config = JSON.parse(read(`locales/${lang}.json`));
   const values = { ...config.messages, lang, version, logoFile: lang === 'de' ? 'Logo-deutsch.jpeg' : 'logo-italiano.jpeg' };
-  const html = template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+  const localizedTemplate = lang === "de" ? template.replace(/\s*<col class="reading-col" \/>/, "").replace(/\s*<th class="reading-heading">.*?<\/th>/, "") : template;
+  const html = localizedTemplate.replace(/\{\{(\w+)\}\}/g, (_, key) => {
     if (!(key in values)) throw new Error(`Missing translation: ${lang}.${key}`);
     return escape(values[key]);
   });

@@ -31,6 +31,8 @@ const server = createServer((req, res) => {
   async function open(lang, allowed = ['it', 'de'], loggedIn = true) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, acceptDownloads: true });
     contexts.push(context);
+    context.setDefaultTimeout(20000);
+    context.setDefaultNavigationTimeout(20000);
     await context.addInitScript(({ session, loggedIn }) => {
       if (loggedIn) localStorage.setItem('sb-zqhuctdwpdjdfrinlkcz-auth-token', JSON.stringify(session));
       localStorage.setItem('foglio-preghiera:2026-09', JSON.stringify({ days: { 1: { subject: 'LEGACY IT ONLY', reading: '' } } }));
@@ -111,7 +113,7 @@ const server = createServer((req, res) => {
     await de.setViewportSize({ width: 1440, height: 1000 });
     assert.equal(await de.title(), 'Gebetsplan');
     assert.equal(await de.locator('#monthSelect option').nth(2).textContent(), 'März');
-    assert.equal(await de.locator('th').nth(2).textContent(), 'Gebetsanliegen');
+    assert.equal(await de.locator('th').nth(1).textContent(), 'Gebetsanliegen');
     assert.equal(writes.length, 0, 'Opening a month must not save or populate the empty German DB');
     assert.equal(await de.locator('[data-key="subject"]').first().textContent(), '', 'German must not recover legacy Italian content');
     const germanText = 'Für die Familien – Größe, Hoffnung und Frieden.';
@@ -124,7 +126,7 @@ const server = createServer((req, res) => {
     assert.equal(await de.locator('[data-key="subject"]').first().textContent(), germanText);
     for (const lang of ['it', 'de']) {
       const multiline = await open(lang);
-      for (const key of ['reading', 'subject']) {
+      for (const key of (lang === 'de' ? ['subject'] : ['reading', 'subject'])) {
         const field = multiline.locator('[data-key="' + key + '"]').first();
         await field.fill('Salmo 23');
         await field.press('End');
@@ -144,7 +146,7 @@ const server = createServer((req, res) => {
       });
       await multiline.reload();
       await multiline.locator('#appShell').waitFor({ state: 'visible' });
-      for (const key of ['reading', 'subject']) {
+      for (const key of (lang === 'de' ? ['subject'] : ['reading', 'subject'])) {
         await multiline.waitForFunction(key => {
           const field = document.querySelector('[data-key="' + key + '"]');
           return !document.querySelector('#appShell').hidden && field?.innerText === 'Salmo 23\nGiovanni 3\n\nRomani 8';
@@ -152,6 +154,26 @@ const server = createServer((req, res) => {
         assert.equal(await multiline.locator('[data-key="' + key + '"]').first().innerText(), 'Salmo 23\nGiovanni 3\n\nRomani 8');
       }
       await multiline.close();
+    }
+    for (const lang of ['it', 'de']) {
+      const wordPage = await open(lang);
+      assert.equal(await wordPage.locator('th').count(), lang === 'de' ? 2 : 3);
+      assert.equal(await wordPage.locator('[data-key="reading"]').count(), lang === 'de' ? 0 : await wordPage.locator('#daysBody tr').count());
+      await wordPage.locator('[data-key="subject"]').first().evaluate(el => { el.innerHTML = '<strong>Größe & pace</strong><br>Seconda riga'; el.dispatchEvent(new Event('input', { bubbles: true })); });
+      const downloaded = wordPage.waitForEvent('download');
+      await wordPage.locator('#wordButton').click();
+      const word = await downloaded;
+      assert(word.suggestedFilename().endsWith('.docx'));
+      await word.saveAs(resolve(output, lang + '.docx'));
+      const zip = await require('jszip').loadAsync(readFileSync(resolve(output, lang + '.docx')));
+      const xml = await zip.file('word/document.xml').async('string');
+      assert(xml.includes('Größe &amp; pace'));
+      assert(xml.includes('Seconda riga'));
+      assert(xml.includes('<w:b/>'));
+      assert.equal((xml.match(/<w:gridCol /g) || []).length, lang === 'de' ? 2 : 3);
+      assert.equal(xml.includes('Bibellese'), false);
+      if (lang === 'it') assert(xml.includes('Lettura'));
+      await wordPage.close();
     }
     const current = await de.evaluate(() => ({ year: state.year, month: state.month }));
     const previous = current.month === 0 ? { year: current.year-1, month: 11 } : { year: current.year, month: current.month-1 };
@@ -194,7 +216,7 @@ const server = createServer((req, res) => {
     const popupPromise = de.waitForEvent('popup');
     await de.locator('#openImageLink').click();
     const popup = await popupPromise;
-    await popup.waitForLoadState();
+    await popup.waitForLoadState('domcontentloaded');
     assert(popup.url().startsWith('blob:'));
     await popup.close();
     await de.locator('#closeImagePreview').click();
@@ -286,7 +308,7 @@ const server = createServer((req, res) => {
     await login.locator('#loginCard').waitFor({ state: 'visible' });
     assert.equal(await login.locator('#daysBody tr').count(), 0);
     assert.deepEqual(errors, []);
-    console.log('PASS: IT/DE routing, login/logout, translation, independent persistence, reload, import, Sunday preservation, PDF, image preview/download/open, file sharing on tap, sharing cancellation/failure, canvas failure, mobile bitmap limit, denied access, failed-save recovery, failed-load protection.');
+    console.log('PASS: IT/DE routing, login/logout, translation, independent persistence, reload, import, Sunday preservation, editable Word IT/DE, German two-column layout, PDF, image preview/download/open, file sharing on tap, sharing cancellation/failure, canvas failure, mobile bitmap limit, denied access, failed-save recovery, failed-load protection.');
   } finally {
     await browser.close();
     server.close();

@@ -77,7 +77,10 @@ window.PRAYER_APP = Object.freeze({
     "imageFallbackHint": "Öffne das Bild, um es zu vergrößern. Auf dem iPhone kannst du es gedrückt halten, um die Optionen zum Sichern und Teilen aufzurufen.",
     "imagePreparing": "Das Bild wird vorbereitet…",
     "imageError": "Das Bild konnte nicht erstellt werden. Schließe die Vorschau und versuche es erneut.",
-    "shareError": "Teilen ist nicht verfügbar. Du kannst das Bild öffnen oder herunterladen."
+    "shareError": "Teilen ist nicht verfügbar. Du kannst das Bild öffnen oder herunterladen.",
+    "wordTitle": "Als Word (.docx) exportieren",
+    "wordExported": "Word-Datei exportiert.",
+    "wordError": "Die Word-Datei konnte nicht erstellt werden. Bitte erneut versuchen."
   },
   "months": [
     "Januar",

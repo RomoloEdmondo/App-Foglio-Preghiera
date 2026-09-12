@@ -166,6 +166,7 @@
                 </span>
                 <span>{{image}}</span>
               </button>
+              <button id="wordButton" class="word-action" type="button" title="{{wordTitle}}"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H5v18h14V8zM14 3v5h5M7 12l2 6 3-5 3 5 2-6"/></svg></span><span>Word</span></button>
             </div>
           </div>
         </div>
@@ -188,7 +189,7 @@
               <thead>
                 <tr>
                   <th>{{day}}</th>
-                  <th>{{reading}}</th>
+                  <th class="reading-heading">{{reading}}</th>
                   <th>{{subject}}</th>
                 </tr>
               </thead>
@@ -225,6 +226,7 @@
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="../assets/vendor/docx.js?v={{version}}"></script>
     <script src="../app.js?v={{version}}"></script>
   </body>
 </html>
