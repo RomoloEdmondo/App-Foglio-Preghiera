@@ -152,6 +152,10 @@
 
             <div class="toolbar-group export-group" aria-label="{{exportMonth}}">
               <span class="group-label">{{export}}</span>
+              <button id="shareMonthButton" aria-label="{{shareMonthTitle}}" class="share-action" type="button" title="{{shareMonthTitle}}">
+                <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M12 16V3m-4 4 4-4 4 4M5 12v9h14v-9"/></svg></span>
+                <span>{{shareMonth}}</span>
+              </button>
               <button id="printButton" class="pdf-action" type="button">
                 <span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M14 3H5v18h14V8zM14 3v5h5M8 13h8M8 17h6"/></svg></span>
                 <span>PDF</span>
@@ -206,6 +210,19 @@
     </footer>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <dialog id="shareMonthDialog" class="image-preview" aria-labelledby="shareMonthTitle">
+      <header class="preview-header">
+        <h2 id="shareMonthTitle">{{shareMonthTitle}}</h2>
+        <button type="button" id="closeShareMonth" class="preview-close" aria-label="{{close}}" autofocus>×</button>
+      </header>
+      <p id="shareMonthStatus" class="preview-status" role="status" aria-live="polite"></p>
+      <div id="shareMonthActions" class="preview-actions" hidden>
+        <button type="button" id="shareFilesButton" class="preview-primary" hidden>{{shareFiles}}</button>
+        <a id="downloadSharedPdf" class="preview-secondary">{{downloadPdf}}</a>
+        <a id="downloadSharedImage" class="preview-secondary">{{downloadImage}}</a>
+      </div>
+    </dialog>
 
     <dialog id="imagePreview" class="image-preview" aria-labelledby="imagePreviewTitle">
       <header class="preview-header">

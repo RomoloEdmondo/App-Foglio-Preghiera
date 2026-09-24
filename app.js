@@ -19,10 +19,18 @@ const EXPORT_PAGE_HEIGHT = Math.round(EXPORT_PAGE_WIDTH / EXPORT_PAGE_RATIO);
 const PDF_EXPORT_SCALE = 2.2;
 const PDF_IMAGE_QUALITY = 0.97;
 const MIN_EXPORT_TEXT_SCALE = 0.45;
+// 11 pt at the PDF export width of 297 mm.
+const EXPORT_BODY_FONT_SIZE = 11 * EXPORT_PAGE_WIDTH / (297 / 25.4 * 72);
+const EXPORT_BODY_FONT = `${EXPORT_BODY_FONT_SIZE}px Arial`;
+const EXPORT_BODY_BOLD_FONT = `bold ${EXPORT_BODY_FONT_SIZE}px Arial`;
+const EXPORT_READING_FONT_SIZE = EXPORT_BODY_FONT_SIZE - 1;
+const EXPORT_READING_FONT = `${EXPORT_READING_FONT_SIZE}px Arial`;
+const EXPORT_READING_BOLD_FONT = `bold ${EXPORT_READING_FONT_SIZE}px Arial`;
 
 const monthSelect = document.querySelector("#monthSelect");
 const yearInput = document.querySelector("#yearInput");
 const todayButton = document.querySelector("#todayButton");
+const shareMonthButton = document.querySelector("#shareMonthButton");
 const printButton = document.querySelector("#printButton");
 const wordButton = document.querySelector("#wordButton");
 const imageButton = document.querySelector("#imageButton");
@@ -79,7 +87,7 @@ let navigationBusy = false;
 
 function setMonthBusy(busy) {
   navigationBusy = busy;
-  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton]) control.disabled = busy;
+  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton, shareMonthButton]) control.disabled = busy;
   daysBody.querySelectorAll('.editable').forEach(field => { field.contentEditable = String(!busy); });
 }
 
@@ -430,6 +438,7 @@ function initControls() {
   boldButton.addEventListener("click", applyBoldToSelection);
   todayButton.addEventListener("click", goToCurrentMonth);
   printButton.addEventListener("click", exportPdf);
+  shareMonthButton.addEventListener("click", prepareMonthShare);
   imageButton.addEventListener("click", exportImage);
   wordButton.addEventListener("click", exportWord);
 
@@ -824,23 +833,12 @@ async function exportPdf() {
     await saveMonth();
     await waitForLogoImage();
 
-    const canvas = buildExportCanvas(PDF_EXPORT_SCALE);
-    const pages = splitCanvasForPdf(canvas, "image/jpeg", PDF_IMAGE_QUALITY);
     const title = `${appConfig.filename}-${monthNames[state.month]}-${state.year}`;
-    const PdfDocument = window.jspdf?.jsPDF;
-
-    if (!PdfDocument) {
+    if (!window.jspdf?.jsPDF) {
       showToast(t("pdfMissing"), "warning");
       return;
     }
-
-    const pdf = new PdfDocument({ orientation: "landscape", unit: "mm", format: "a4" });
-    pages.forEach((imageUrl, index) => {
-      if (index > 0) {
-        pdf.addPage("a4", "landscape");
-      }
-      pdf.addImage(imageUrl, "JPEG", 0, 0, 297, 210);
-    });
+    const pdf = createPdfDocument();
     pdf.save(`${title}.pdf`);
     showToast(t("pdfExported"));
   } finally {
@@ -848,6 +846,88 @@ async function exportPdf() {
     printButton.querySelector("span:last-child").textContent = "PDF";
   }
 }
+
+function createPdfDocument() {
+  const canvas = buildExportCanvas(PDF_EXPORT_SCALE);
+  try {
+    const pages = splitCanvasForPdf(canvas, "image/jpeg", PDF_IMAGE_QUALITY);
+    const pdf = new window.jspdf.jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+    pages.forEach((imageUrl, index) => {
+      if (index) pdf.addPage("a4", "landscape");
+      pdf.addImage(imageUrl, "JPEG", 0, 0, 297, 210);
+    });
+    return pdf;
+  } finally {
+    canvas.width = 0;
+    canvas.height = 0;
+  }
+}
+
+const shareMonthDialog = document.querySelector("#shareMonthDialog");
+const shareMonthStatus = document.querySelector("#shareMonthStatus");
+const shareMonthActions = document.querySelector("#shareMonthActions");
+const shareFilesButton = document.querySelector("#shareFilesButton");
+let sharedMonthFiles = [];
+let sharedMonthUrls = [];
+let shareMonthRevision = 0;
+function clearMonthShare() {
+  ++shareMonthRevision;
+  sharedMonthFiles = [];
+  sharedMonthUrls.forEach(url => URL.revokeObjectURL(url));
+  sharedMonthUrls = [];
+  for (const id of ["downloadSharedPdf", "downloadSharedImage"]) document.getElementById(id).removeAttribute("href");
+  shareMonthActions.hidden = true;
+}
+document.querySelector("#closeShareMonth").addEventListener("click", () => shareMonthDialog.close());
+shareMonthDialog.addEventListener("close", clearMonthShare);
+async function prepareMonthShare() {
+  clearMonthShare();
+  const revision = shareMonthRevision;
+  shareFilesButton.disabled = false;
+  shareFilesButton.hidden = true;
+  shareMonthStatus.textContent = t("sharePreparing");
+  shareMonthDialog.showModal();
+  let canvas;
+  try {
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await waitForLogoImage();
+    if (revision !== shareMonthRevision || !shareMonthDialog.open) return;
+    const name = `${appConfig.filename}-${monthNames[state.month]}-${state.year}`;
+    const pdfBlob = createPdfDocument().output("blob");
+    canvas = buildFullMonthImageCanvas(2);
+    const imageBlob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Empty image")), "image/png"));
+    if (revision !== shareMonthRevision || !shareMonthDialog.open) return;
+    sharedMonthFiles = [new File([pdfBlob], `${name}.pdf`, { type: "application/pdf" }), new File([imageBlob], `${name}.png`, { type: "image/png" })];
+    sharedMonthUrls = sharedMonthFiles.map(file => URL.createObjectURL(file));
+    ["downloadSharedPdf", "downloadSharedImage"].forEach((id, index) => {
+      const link = document.getElementById(id);
+      link.href = sharedMonthUrls[index];
+      link.download = sharedMonthFiles[index].name;
+    });
+    let canShare = false;
+    try { canShare = Boolean(navigator.share && navigator.canShare?.({ files: sharedMonthFiles })); } catch { /* Download fallback. */ }
+    shareFilesButton.hidden = !canShare;
+    shareMonthActions.hidden = false;
+    shareMonthStatus.textContent = t(canShare ? "shareFilesHint" : "shareFilesFallback");
+  } catch {
+    if (revision === shareMonthRevision) shareMonthStatus.textContent = t("shareFilesError");
+  } finally {
+    if (canvas) { canvas.width = 0; canvas.height = 0; }
+  }
+}
+shareFilesButton.addEventListener("click", async () => {
+  if (sharedMonthFiles.length !== 2) return;
+  const revision = shareMonthRevision;
+  shareFilesButton.disabled = true;
+  try {
+    // Sharing must start directly from a tap after both files are ready.
+    await navigator.share({ files: sharedMonthFiles });
+  } catch (error) {
+    if (revision === shareMonthRevision && error.name !== "AbortError") shareMonthStatus.textContent = t("shareFilesFallback");
+  } finally {
+    if (revision === shareMonthRevision) shareFilesButton.disabled = false;
+  }
+});
 
 function splitCanvasForPdf(canvas, mimeType = "image/png", quality) {
   const pageHeight = Math.floor(canvas.height / EXPORT_PAGE_COUNT);
@@ -872,8 +952,8 @@ function buildFullMonthImageCanvas(scale = 2) {
   const pageHeaderHeight = EXPORT_PAGE_HEADER_HEIGHT;
   const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
   const minRowHeight = 66;
-  const col1 = 138;
-  const col2 = hasReadingColumn ? 260 : 0;
+  const col1 = 142;
+  const col2 = hasReadingColumn ? 256 : 0;
   const col3 = width - padding * 2 - col1 - col2;
   const rows = [];
   const measureCanvas = document.createElement("canvas");
@@ -881,7 +961,7 @@ function buildFullMonthImageCanvas(scale = 2) {
 
   for (let day = 1; day <= totalDays; day += 1) {
     const data = state.days[day] || {};
-    const readingLines = !hasReadingColumn ? [] : wrapRichText(measureCtx, data.reading || "", col2 - 20, "23px Arial", "bold 23px Arial");
+    const readingLines = !hasReadingColumn ? [] : wrapRichText(measureCtx, data.reading || "", col2 - 20, EXPORT_READING_FONT, EXPORT_READING_BOLD_FONT);
     const subjectLines = wrapRichText(measureCtx, data.subject || "", col3 - 24, "27px Arial", "bold 27px Arial");
     const rowHeight = Math.max(minRowHeight, Math.max(readingLines.length * 28, subjectLines.length * 31, 73) + 18);
     rows.push({ day, readingLines, subjectLines, rowHeight });
@@ -933,10 +1013,11 @@ function buildFullMonthImageCanvas(scale = 2) {
     drawRect(ctx, left, y, right - left, row.rowHeight, 3);
     drawLine(ctx, left + col1, y, left + col1, y + row.rowHeight, 3);
     if (hasReadingColumn) drawLine(ctx, left + col1 + col2, y, left + col1 + col2, y + row.rowHeight, 3);
-    drawCellText(ctx, String(row.day), left + 10, y + 27, col1 - 20, "bold 25px Arial", "#1e1c18", 29);
-    drawCellText(ctx, weekdayNames[date.getDay()], left + 10, y + 53, col1 - 20, "bold 15px Arial", "#6f675b", 20);
-    if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, y + 25, col2 - 20, "23px Arial", "bold 23px Arial", 28);
-    drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, y + 27, col3 - 24, "27px Arial", "bold 27px Arial", 31);
+    const dayY = topTextBaseline(ctx, y, EXPORT_BODY_BOLD_FONT);
+    drawCellText(ctx, String(row.day), left + 10, dayY, col1 - 20, EXPORT_BODY_BOLD_FONT, "#1e1c18", 26, "center");
+    drawCellText(ctx, weekdayNames[date.getDay()], left + 4, dayY + 26, col1 - 8, EXPORT_BODY_BOLD_FONT, "#6f675b", 26, "center");
+    if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, topTextBaseline(ctx, y, EXPORT_READING_FONT), col2 - 20, EXPORT_READING_FONT, EXPORT_READING_BOLD_FONT, 28, "#1e1c18", "center");
+    drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, topTextBaseline(ctx, y, "27px Arial"), col3 - 24, "27px Arial", "bold 27px Arial", 31, "#1e1c18", date.getDay() === 0 ? "center" : "left");
     y += row.rowHeight;
   }
 
@@ -951,14 +1032,30 @@ function buildExportCanvas(scale = 2) {
   const pageHeaderHeight = EXPORT_PAGE_HEADER_HEIGHT;
   const headerHeight = EXPORT_TABLE_HEADER_HEIGHT;
   const minRowHeight = 66;
-  const col1 = 138;
-  const col2 = hasReadingColumn ? 260 : 0;
+  const col1 = 142;
+  const col2 = hasReadingColumn ? 256 : 0;
   const col3 = width - padding * 2 - col1 - col2;
   const measureCanvas = document.createElement("canvas");
   const measureCtx = measureCanvas.getContext("2d");
   const availableRowHeight = EXPORT_PAGE_HEIGHT - padding * 2 - pageHeaderHeight - headerHeight;
   const layout = fitExportLayout(totalDays, measureCtx, col2, col3, minRowHeight, availableRowHeight);
-  const { metrics, pageRows } = layout;
+  const metrics = {
+    ...layout.metrics,
+    readingFont: EXPORT_READING_FONT,
+    readingBoldFont: EXPORT_READING_BOLD_FONT,
+    readingLineHeight: 26,
+    readingY: 24,
+    dayFont: EXPORT_BODY_BOLD_FONT,
+    dayY: 24,
+    weekdayFont: EXPORT_BODY_BOLD_FONT,
+    weekdayY: 50,
+  };
+  const bodyRows = buildExportRows(totalDays, measureCtx, col2, col3, metrics).map(row => {
+    const readingBottom = row.readingLines.length ? topTextBaseline(measureCtx, 0, metrics.readingFont) + (row.readingLines.length - 1) * metrics.readingLineHeight + 5 : 0;
+    const subjectBottom = row.subjectLines.length ? topTextBaseline(measureCtx, 0, metrics.subjectFont) + (row.subjectLines.length - 1) * metrics.subjectLineHeight + 5 : 0;
+    return { ...row, rowHeight: Math.max(metrics.minRowHeight, readingBottom, subjectBottom, topTextBaseline(measureCtx, 0, metrics.dayFont) + 26 + 5) };
+  });
+  const pageRows = splitRowsIntoTwoPages(bodyRows);
 
   const canvas = document.createElement("canvas");
   canvas.width = width * scale;
@@ -1011,10 +1108,11 @@ function buildExportCanvas(scale = 2) {
       ctx.beginPath();
       ctx.rect(left, y, right - left, row.fittedHeight);
       ctx.clip();
-      drawCellText(ctx, String(row.day), left + 10, y + metrics.dayY, col1 - 20, metrics.dayFont, "#1e1c18", metrics.dayLineHeight);
-      drawCellText(ctx, weekdayNames[date.getDay()], left + 10, y + metrics.weekdayY, col1 - 20, metrics.weekdayFont, "#6f675b", metrics.weekdayLineHeight);
-      if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, y + metrics.readingY, col2 - 20, metrics.readingFont, metrics.readingBoldFont, metrics.readingLineHeight);
-      drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, y + metrics.subjectY, col3 - 24, metrics.subjectFont, metrics.subjectBoldFont, metrics.subjectLineHeight);
+      const dayY = topTextBaseline(ctx, y, metrics.dayFont);
+      drawCellText(ctx, String(row.day), left + 10, dayY, col1 - 20, metrics.dayFont, "#1e1c18", 26, "center");
+      drawCellText(ctx, weekdayNames[date.getDay()], left + 4, dayY + 26, col1 - 8, metrics.weekdayFont, "#6f675b", metrics.weekdayLineHeight, "center");
+      if (hasReadingColumn) drawRichLines(ctx, row.readingLines, left + col1 + 10, topTextBaseline(ctx, y, metrics.readingFont), col2 - 20, metrics.readingFont, metrics.readingBoldFont, metrics.readingLineHeight, "#1e1c18", "center");
+      drawRichLines(ctx, row.subjectLines, left + col1 + col2 + 12, topTextBaseline(ctx, y, metrics.subjectFont), col3 - 24, metrics.subjectFont, metrics.subjectBoldFont, metrics.subjectLineHeight, "#1e1c18", date.getDay() === 0 ? "center" : "left");
       ctx.restore();
       y += row.fittedHeight;
     }
@@ -1341,8 +1439,11 @@ function drawLine(ctx, x1, y1, x2, y2, lineWidth) {
   ctx.stroke();
 }
 
-function drawCellText(ctx, text, x, y, maxWidth, font, color, lineHeight) {
-  drawLines(ctx, wrapText(ctx, text, maxWidth, font), x, y, maxWidth, font, lineHeight, color);
+function drawCellText(ctx, text, x, y, maxWidth, font, color, lineHeight, alignment = "left") {
+  ctx.save();
+  ctx.textAlign = alignment;
+  drawLines(ctx, wrapText(ctx, text, maxWidth, font), alignment === "center" ? x + maxWidth / 2 : x, y, maxWidth, font, lineHeight, color);
+  ctx.restore();
 }
 
 function drawLines(ctx, lines, x, y, maxWidth, font, lineHeight, color = "#1e1c18") {
@@ -1354,12 +1455,20 @@ function drawLines(ctx, lines, x, y, maxWidth, font, lineHeight, color = "#1e1c1
   }
 }
 
-function drawRichLines(ctx, lines, x, y, maxWidth, normalFont, boldFont, lineHeight, color = "#1e1c18") {
+function topTextBaseline(ctx, y, font) {
+  ctx.font = font;
+  return y + 10 + ctx.measureText("Mg").actualBoundingBoxAscent;
+}
+
+function drawRichLines(ctx, lines, x, y, maxWidth, normalFont, boldFont, lineHeight, color = "#1e1c18", alignment = "left") {
   ctx.fillStyle = color;
   ctx.textBaseline = "alphabetic";
 
   for (let index = 0; index < lines.length; index += 1) {
-    let cursorX = x;
+    const lineWidth = alignment === "center"
+      ? lines[index].reduce((width, token) => width + measureRichText(ctx, token.text, token.bold, normalFont, boldFont), 0)
+      : 0;
+    let cursorX = x + (alignment === "center" ? (maxWidth - lineWidth) / 2 : 0);
     for (const token of lines[index]) {
       ctx.font = token.bold ? boldFont : normalFont;
       ctx.fillText(token.text, cursorX, y + index * lineHeight);

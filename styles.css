@@ -490,6 +490,10 @@ thead th:last-child {
   background: transparent;
 }
 
+.sunday-row .subject-field {
+  text-align: center;
+}
+
 .day-cell {
   padding: 6px 8px;
   font-size: 0.92rem;
@@ -1067,3 +1071,28 @@ thead th:last-child {
 }
 .toolbar .export-group { grid-template-columns: repeat(3, auto); }
 html[lang="de"] .prayer-table { min-width: 0; }
+
+.editable[data-key="reading"] {
+  text-align: center;
+}
+
+.toolbar .export-group { grid-template-columns: repeat(4, auto); }
+.toolbar .share-action { background: #eaf4ee; color: #215447; border: 1px solid #7aa98a; }
+@media screen and (max-width: 760px) {
+  .toolbar { grid-template-columns: 40px max-content minmax(8px, 1fr) 40px max-content max-content max-content; column-gap: 4px; }
+  .toolbar .action-group, .toolbar .export-group { display: contents; }
+  .toolbar #previousMonthButton { grid-column: 1; }
+  .toolbar > #saveButton { grid-column: 2; margin: 0; }
+  .toolbar #shareMonthButton { grid-column: 4; }
+  .toolbar #printButton { grid-column: 5; }
+  .toolbar #imageButton { grid-column: 6; }
+  .toolbar #wordButton { grid-column: 7; }
+  .toolbar #previousMonthButton, .toolbar > #saveButton, .toolbar .export-group button {
+    grid-row: 2; width: 100%; min-width: 0; height: 44px; min-height: 44px; padding: 0 5px; align-self: center;
+  }
+  .toolbar #shareMonthButton > .icon { display: inline-flex; }
+  .toolbar #shareMonthButton > span:last-child { display: none; }
+}
+@media screen and (max-width: 360px) {
+  .toolbar button { font-size: 0.66rem; }
+}

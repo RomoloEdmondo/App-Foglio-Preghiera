@@ -79,7 +79,15 @@
     "shareError": "Teilen ist nicht verfügbar. Du kannst das Bild öffnen oder herunterladen.",
     "wordTitle": "Als Word (.docx) exportieren",
     "wordExported": "Word-Datei exportiert.",
-    "wordError": "Die Word-Datei konnte nicht erstellt werden. Bitte erneut versuchen."
+    "wordError": "Die Word-Datei konnte nicht erstellt werden. Bitte erneut versuchen.",
+    "shareMonth": "Teilen",
+    "shareMonthTitle": "PDF und Bild teilen",
+    "sharePreparing": "PDF und Bild werden vorbereitet…",
+    "shareFiles": "App auswählen",
+    "shareFilesHint": "Wähle eine App, um beide Dateien zu teilen, oder lade sie einzeln herunter.",
+    "shareFilesFallback": "Das Teilen von Anhängen ist auf diesem Gerät nicht verfügbar. Lade beide Dateien herunter und füge sie deiner E-Mail hinzu.",
+    "shareFilesError": "Die Dateien konnten nicht erstellt werden. Bitte schließen und erneut versuchen.",
+    "downloadPdf": "PDF herunterladen"
   },
   "months": [
     "Januar",

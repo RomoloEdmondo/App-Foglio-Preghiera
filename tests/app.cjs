@@ -103,6 +103,10 @@ const server = createServer((req, res) => {
     for (const width of [320, 390, 768]) {
       await de.setViewportSize({ width, height: 844 });
       assert(await de.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal page overflow');
+      if (width <= 760) assert(await de.evaluate(() => {
+        const buttons = ['previousMonthButton', 'saveButton', 'shareMonthButton', 'printButton', 'imageButton', 'wordButton'].map(id => document.getElementById(id).getBoundingClientRect());
+        return buttons.every((rect, i) => Math.abs(rect.top - buttons[0].top) < 1 && rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && (!i || rect.left >= buttons[i - 1].right));
+      }), 'Mobile actions stay on one row without overlap');
       await de.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       await de.waitForFunction(() => Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom - innerHeight) < 2);
       assert(await de.evaluate(() => document.querySelector('.app-footer').getBoundingClientRect().top >= document.querySelector('.sheet').getBoundingClientRect().bottom));
@@ -111,6 +115,90 @@ const server = createServer((req, res) => {
       if (width === 390) await de.screenshot({ path: resolve(output, "toolbar-mobile.png") });
     }
     await de.setViewportSize({ width: 1440, height: 1000 });
+    for (const lang of ['it', 'de']) {
+      const exportPage = await open(lang);
+      assert(await exportPage.evaluate(() => {
+        const previous = state;
+        const originalFill = CanvasRenderingContext2D.prototype.fillText;
+        const drawn = [];
+        try {
+          state = { year: 2026, month: 9, days: {} };
+          for (let day = 1; day <= 31; day++) state.days[day] = {
+            reading: day === 14 ? '<b>Digiuno e Preghiera</b> Isaia 53-55<br>1 Tessalonicesi 2' : 'Isaia 22-24<br>Efesini 3',
+            subject: 'Test subject: preghiamo per le famiglie e per la comunità. '.repeat(4),
+          };
+          const col2 = hasReadingColumn ? 256 : 0;
+          const original = fitExportLayout(31, document.createElement('canvas').getContext('2d'), col2, EXPORT_PAGE_WIDTH - 64 - 142 - col2, 66, EXPORT_PAGE_HEIGHT - 64 - 118 - 42);
+          CanvasRenderingContext2D.prototype.fillText = function(text, x, y, ...rest) {
+            drawn.push({ text, font: this.font, x, y, alignment: this.textAlign });
+            return originalFill.call(this, text, x, y, ...rest);
+          };
+          const checkCtx = document.createElement('canvas').getContext('2d');
+          checkCtx.font = EXPORT_BODY_FONT;
+          const sample = checkCtx.measureText('Mg');
+          const baseline = topTextBaseline(checkCtx, 10, EXPORT_BODY_FONT);
+          if (Math.abs(baseline - sample.actualBoundingBoxAscent - 20) > 0.001) throw new Error('Text must start 10 pixels below the cell top');
+          const positions = [];
+          checkCtx.fillText = (text, x) => positions.push(x);
+          drawRichLines(checkCtx, [[{ text: 'Sunday', bold: true }]], 100, 20, 400, EXPORT_BODY_FONT, EXPORT_BODY_BOLD_FONT, 26, '#000', 'center');
+          checkCtx.font = EXPORT_BODY_BOLD_FONT;
+          if (Math.abs(positions[0] - (100 + (400 - checkCtx.measureText('Sunday').width) / 2)) > 0.001) throw new Error('Sunday text is not centered');
+          const canvas = buildExportCanvas(0.2);
+          const fontSize = font => parseFloat(font.match(/[\d.]+px/)[0]);
+          return splitCanvasForPdf(canvas).length === 2
+            && drawn.filter(item => /^\d+$/.test(item.text)).length === 31
+            && drawn.filter(item => /^\d+$/.test(item.text)).every(item => Math.abs(fontSize(item.font) - EXPORT_BODY_FONT_SIZE) < 0.01)
+            && drawn.filter(item => /^\d+$/.test(item.text) || weekdayNames.includes(item.text)).every(item => item.alignment === 'center' && Math.abs(item.x - (32 + 71)) < 0.01)
+            && drawn.filter(item => weekdayNames.includes(item.text)).length === 31
+            && drawn.filter(item => weekdayNames.includes(item.text)).every(item => Math.abs(fontSize(item.font) - EXPORT_BODY_FONT_SIZE) < 0.01)
+            && drawn.filter(item => item.text.startsWith('Test subject')).every(item => item.font === original.metrics.subjectFont)
+            && drawn.filter(item => item.text === t('day').toLocaleUpperCase(appConfig.lang)).every(item => item.font === 'bold 18px Arial')
+            && (!hasReadingColumn || drawn.filter(item => item.text.startsWith('Isaia')).every(item => Math.abs(fontSize(item.font) - EXPORT_READING_FONT_SIZE) < 0.01))
+            && (!hasReadingColumn || drawn.filter(item => item.text === 'Isaia 22-24').every(item => {
+              checkCtx.font = item.font;
+              return Math.abs(item.x + checkCtx.measureText(item.text).width / 2 - (32 + 142 + 128)) < 0.01;
+            }))
+            && drawn.every(item => item.y % EXPORT_PAGE_HEIGHT < EXPORT_PAGE_HEIGHT - EXPORT_PAGE_PADDING);
+        } finally {
+          state = previous;
+          CanvasRenderingContext2D.prototype.fillText = originalFill;
+        }
+      }), 'Two-page exports retain original subject/header fonts; only weekday and reading bodies use 11 pt');
+      assert.equal(await exportPage.locator('#shareMonthButton + #printButton').count(), 1);
+      await exportPage.evaluate(() => {
+        window.sharedFilesForTest = null;
+        Object.defineProperty(navigator, 'canShare', { configurable: true, value: ({ files }) => files.length === 2 && files[0].type === 'application/pdf' && files[1].type === 'image/png' });
+        Object.defineProperty(navigator, 'share', { configurable: true, value: async ({ files }) => {
+          window.sharedFilesForTest = files.map(file => ({ name: file.name, type: file.type, size: file.size }));
+        } });
+      });
+      await exportPage.locator('#shareMonthButton').click();
+      await exportPage.locator('#shareMonthActions').waitFor({ state: 'visible' });
+      assert(await exportPage.locator('#shareFilesButton').isVisible());
+      assert.equal(await exportPage.evaluate(() => window.sharedFilesForTest), null, 'Preparing attachments must not share automatically');
+      for (const [id, extension] of [['downloadSharedPdf', '.pdf'], ['downloadSharedImage', '.png']]) {
+        const downloadPromise = exportPage.waitForEvent('download');
+        await exportPage.locator('#' + id).click();
+        const download = await downloadPromise;
+        assert(download.suggestedFilename().endsWith(extension));
+      }
+      await exportPage.locator('#shareFilesButton').click();
+      assert(await exportPage.evaluate(() => sharedFilesForTest.length === 2 && sharedFilesForTest.every(file => file.size > 1000)));
+      await exportPage.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new DOMException('Cancelled', 'AbortError'); } }));
+      await exportPage.locator('#shareFilesButton').click();
+      assert(await exportPage.locator('#downloadSharedPdf').isVisible());
+      assert(await exportPage.locator('#shareFilesButton').isEnabled());
+      await exportPage.locator('#closeShareMonth').click();
+      await exportPage.waitForFunction(() => !document.querySelector('#downloadSharedPdf').hasAttribute('href'));
+      await exportPage.evaluate(() => Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false }));
+      await exportPage.locator('#shareMonthButton').click();
+      await exportPage.locator('#shareMonthActions').waitFor({ state: 'visible' });
+      assert(await exportPage.locator('#shareFilesButton').isHidden());
+      assert(await exportPage.locator('#downloadSharedPdf').isVisible());
+      assert(await exportPage.locator('#downloadSharedImage').isVisible());
+      await exportPage.locator('#closeShareMonth').click();
+      await exportPage.close();
+    }
     assert.equal(await de.title(), 'Gebetsplan');
     assert.equal(await de.locator('#monthSelect option').nth(2).textContent(), 'März');
     assert.equal(await de.locator('th').nth(1).textContent(), 'Gebetsanliegen');

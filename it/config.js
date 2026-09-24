@@ -80,7 +80,15 @@ window.PRAYER_APP = Object.freeze({
     "shareError": "Condivisione non disponibile. Puoi aprire l’immagine oppure scaricarla.",
     "wordTitle": "Esporta in Word (.docx)",
     "wordExported": "File Word esportato.",
-    "wordError": "Impossibile creare il file Word. Riprova."
+    "wordError": "Impossibile creare il file Word. Riprova.",
+    "shareMonth": "Condividi",
+    "shareMonthTitle": "Condividi PDF e immagine",
+    "sharePreparing": "Preparazione di PDF e immagine…",
+    "shareFiles": "Scegli app",
+    "shareFilesHint": "Scegli un’app per condividere entrambi i file, oppure scaricali separatamente.",
+    "shareFilesFallback": "La condivisione degli allegati non è disponibile su questo dispositivo. Scarica i due file e allegali alla tua email.",
+    "shareFilesError": "Non è stato possibile preparare i file. Chiudi e riprova.",
+    "downloadPdf": "Scarica PDF"
   },
   "months": [
     "gennaio",
