@@ -105,8 +105,15 @@ const server = createServer((req, res) => {
       assert(await de.evaluate(() => document.documentElement.scrollWidth <= innerWidth), 'No horizontal page overflow');
       if (width <= 760) assert(await de.evaluate(() => {
         const buttons = ['previousMonthButton', 'saveButton', 'shareMonthButton', 'printButton', 'imageButton', 'wordButton'].map(id => document.getElementById(id).getBoundingClientRect());
-        return buttons.every((rect, i) => Math.abs(rect.top - buttons[0].top) < 1 && rect.height >= 44 && rect.left >= 0 && rect.right <= innerWidth && (!i || rect.left >= buttons[i - 1].right));
+        return buttons.every((rect, i) => Math.abs(rect.top - buttons[0].top) < 1 && rect.height >= 40 && rect.left >= 0 && rect.right <= innerWidth && (!i || rect.left >= buttons[i - 1].right));
       }), 'Mobile actions stay on one row without overlap');
+      if (width <= 760) assert(await de.evaluate(() => {
+        const ids = ['previousMonthButton', 'shareMonthButton', 'printButton', 'imageButton', 'wordButton'];
+        const boxes = ids.map(id => document.getElementById(id).getBoundingClientRect());
+        return boxes.every(box => Math.abs(box.width - boxes[0].width) < 1 && Math.abs(box.width - box.height) < 1)
+          && document.querySelector('#saveButton').getBoundingClientRect().width > boxes[0].width
+          && getComputedStyle(document.querySelector('#imageButton .icon')).display !== 'none';
+      }), 'Mobile compact buttons are equal squares and Save is wider');
       await de.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       await de.waitForFunction(() => Math.abs(document.querySelector('.app-footer').getBoundingClientRect().bottom - innerHeight) < 2);
       assert(await de.evaluate(() => document.querySelector('.app-footer').getBoundingClientRect().top >= document.querySelector('.sheet').getBoundingClientRect().bottom));
@@ -172,31 +179,24 @@ const server = createServer((req, res) => {
           window.sharedFilesForTest = files.map(file => ({ name: file.name, type: file.type, size: file.size }));
         } });
       });
+      await exportPage.waitForFunction(() => sharedMonthFiles.length === 2);
+      assert.equal(await exportPage.evaluate(() => window.sharedFilesForTest), null);
       await exportPage.locator('#shareMonthButton').click();
-      await exportPage.locator('#shareMonthActions').waitFor({ state: 'visible' });
-      assert(await exportPage.locator('#shareFilesButton').isVisible());
-      assert.equal(await exportPage.evaluate(() => window.sharedFilesForTest), null, 'Preparing attachments must not share automatically');
-      for (const [id, extension] of [['downloadSharedPdf', '.pdf'], ['downloadSharedImage', '.png']]) {
-        const downloadPromise = exportPage.waitForEvent('download');
-        await exportPage.locator('#' + id).click();
-        const download = await downloadPromise;
-        assert(download.suggestedFilename().endsWith(extension));
-      }
-      await exportPage.locator('#shareFilesButton').click();
       assert(await exportPage.evaluate(() => sharedFilesForTest.length === 2 && sharedFilesForTest.every(file => file.size > 1000)));
+      assert(await exportPage.locator('#shareMonthDialog').isHidden(), 'Share opens directly without a modal');
       await exportPage.evaluate(() => Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new DOMException('Cancelled', 'AbortError'); } }));
-      await exportPage.locator('#shareFilesButton').click();
-      assert(await exportPage.locator('#downloadSharedPdf').isVisible());
-      assert(await exportPage.locator('#shareFilesButton').isEnabled());
-      await exportPage.locator('#closeShareMonth').click();
-      await exportPage.waitForFunction(() => !document.querySelector('#downloadSharedPdf').hasAttribute('href'));
+      await exportPage.locator('#shareMonthButton').click();
+      assert(await exportPage.locator('#shareMonthDialog').isHidden());
       await exportPage.evaluate(() => Object.defineProperty(navigator, 'canShare', { configurable: true, value: () => false }));
       await exportPage.locator('#shareMonthButton').click();
       await exportPage.locator('#shareMonthActions').waitFor({ state: 'visible' });
-      assert(await exportPage.locator('#shareFilesButton').isHidden());
-      assert(await exportPage.locator('#downloadSharedPdf').isVisible());
-      assert(await exportPage.locator('#downloadSharedImage').isVisible());
+      for (const [id, extension] of [['downloadSharedPdf', '.pdf'], ['downloadSharedImage', '.png']]) {
+        const downloadPromise = exportPage.waitForEvent('download');
+        await exportPage.locator('#' + id).click();
+        assert((await downloadPromise).suggestedFilename().endsWith(extension));
+      }
       await exportPage.locator('#closeShareMonth').click();
+      await exportPage.waitForFunction(() => !document.querySelector('#downloadSharedPdf').hasAttribute('href'));
       await exportPage.close();
     }
     assert.equal(await de.title(), 'Gebetsplan');

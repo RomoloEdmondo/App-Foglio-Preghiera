@@ -87,7 +87,7 @@ let navigationBusy = false;
 
 function setMonthBusy(busy) {
   navigationBusy = busy;
-  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton, shareMonthButton]) control.disabled = busy;
+  for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton, shareMonthButton]) control.disabled = busy || (control === shareMonthButton && !sharedMonthFiles.length);
   daysBody.querySelectorAll('.editable').forEach(field => { field.contentEditable = String(!busy); });
 }
 
@@ -199,6 +199,7 @@ async function saveMonth(showMessage = false) {
 }
 
 function queueSave() {
+  scheduleMonthShare();
   dirty = true;
   saveLocalMonth();
   clearTimeout(saveTimer);
@@ -438,7 +439,7 @@ function initControls() {
   boldButton.addEventListener("click", applyBoldToSelection);
   todayButton.addEventListener("click", goToCurrentMonth);
   printButton.addEventListener("click", exportPdf);
-  shareMonthButton.addEventListener("click", prepareMonthShare);
+  shareMonthButton.addEventListener("click", shareMonthDirect);
   imageButton.addEventListener("click", exportImage);
   wordButton.addEventListener("click", exportWord);
 
@@ -644,6 +645,7 @@ function render() {
     daysBody.append(tr);
   }
 
+  scheduleMonthShare();
 }
 
 function createEditableField(day, key, label) {
@@ -866,68 +868,83 @@ function createPdfDocument() {
 const shareMonthDialog = document.querySelector("#shareMonthDialog");
 const shareMonthStatus = document.querySelector("#shareMonthStatus");
 const shareMonthActions = document.querySelector("#shareMonthActions");
-const shareFilesButton = document.querySelector("#shareFilesButton");
 let sharedMonthFiles = [];
 let sharedMonthUrls = [];
 let shareMonthRevision = 0;
-function clearMonthShare() {
-  ++shareMonthRevision;
-  sharedMonthFiles = [];
+let shareMonthTimer;
+let sharedMonthKey = "";
+function monthShareKey() { return JSON.stringify([authorizedUserId, state]); }
+function clearShareDownloads() {
   sharedMonthUrls.forEach(url => URL.revokeObjectURL(url));
   sharedMonthUrls = [];
   for (const id of ["downloadSharedPdf", "downloadSharedImage"]) document.getElementById(id).removeAttribute("href");
-  shareMonthActions.hidden = true;
 }
 document.querySelector("#closeShareMonth").addEventListener("click", () => shareMonthDialog.close());
-shareMonthDialog.addEventListener("close", clearMonthShare);
-async function prepareMonthShare() {
-  clearMonthShare();
-  const revision = shareMonthRevision;
-  shareFilesButton.disabled = false;
-  shareFilesButton.hidden = true;
-  shareMonthStatus.textContent = t("sharePreparing");
-  shareMonthDialog.showModal();
+shareMonthDialog.addEventListener("close", clearShareDownloads);
+function scheduleMonthShare() {
+  clearTimeout(shareMonthTimer);
+  const revision = ++shareMonthRevision;
+  sharedMonthFiles = [];
+  sharedMonthKey = "";
+  shareMonthButton.disabled = true;
+  shareMonthButton.setAttribute("aria-busy", "true");
+  shareMonthTimer = setTimeout(() => prepareMonthShare(revision), 700);
+}
+async function prepareMonthShare(revision) {
   let canvas;
   try {
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     await waitForLogoImage();
-    if (revision !== shareMonthRevision || !shareMonthDialog.open) return;
+    if (revision !== shareMonthRevision) return;
+    const key = monthShareKey();
     const name = `${appConfig.filename}-${monthNames[state.month]}-${state.year}`;
     const pdfBlob = createPdfDocument().output("blob");
     canvas = buildFullMonthImageCanvas(2);
     const imageBlob = await new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error("Empty image")), "image/png"));
-    if (revision !== shareMonthRevision || !shareMonthDialog.open) return;
+    if (revision !== shareMonthRevision || key !== monthShareKey()) return;
     sharedMonthFiles = [new File([pdfBlob], `${name}.pdf`, { type: "application/pdf" }), new File([imageBlob], `${name}.png`, { type: "image/png" })];
-    sharedMonthUrls = sharedMonthFiles.map(file => URL.createObjectURL(file));
-    ["downloadSharedPdf", "downloadSharedImage"].forEach((id, index) => {
-      const link = document.getElementById(id);
-      link.href = sharedMonthUrls[index];
-      link.download = sharedMonthFiles[index].name;
-    });
-    let canShare = false;
-    try { canShare = Boolean(navigator.share && navigator.canShare?.({ files: sharedMonthFiles })); } catch { /* Download fallback. */ }
-    shareFilesButton.hidden = !canShare;
-    shareMonthActions.hidden = false;
-    shareMonthStatus.textContent = t(canShare ? "shareFilesHint" : "shareFilesFallback");
+    sharedMonthKey = key;
   } catch {
-    if (revision === shareMonthRevision) shareMonthStatus.textContent = t("shareFilesError");
+    // Retry on the next tap or edit; other exports remain available.
   } finally {
     if (canvas) { canvas.width = 0; canvas.height = 0; }
+    if (revision === shareMonthRevision) {
+      shareMonthButton.disabled = navigationBusy;
+      shareMonthButton.removeAttribute("aria-busy");
+    }
   }
 }
-shareFilesButton.addEventListener("click", async () => {
-  if (sharedMonthFiles.length !== 2) return;
-  const revision = shareMonthRevision;
-  shareFilesButton.disabled = true;
+function showShareDownloads() {
+  clearShareDownloads();
+  sharedMonthUrls = sharedMonthFiles.map(file => URL.createObjectURL(file));
+  ["downloadSharedPdf", "downloadSharedImage"].forEach((id, index) => {
+    const link = document.getElementById(id);
+    link.href = sharedMonthUrls[index];
+    link.download = sharedMonthFiles[index].name;
+  });
+  shareMonthActions.hidden = false;
+  shareMonthStatus.textContent = t("shareFilesFallback");
+  shareMonthDialog.showModal();
+}
+async function shareMonthDirect() {
+  if (sharedMonthFiles.length !== 2 || sharedMonthKey !== monthShareKey()) {
+    scheduleMonthShare();
+    showToast(t("sharePreparing"));
+    return;
+  }
+  let canShare = false;
+  try { canShare = Boolean(navigator.share && navigator.canShare?.({ files: sharedMonthFiles })); } catch { /* Download fallback. */ }
+  if (!canShare) { showShareDownloads(); return; }
+  shareMonthButton.disabled = true;
+  const key = sharedMonthKey;
   try {
-    // Sharing must start directly from a tap after both files are ready.
+    // Files are prepared beforehand, so this call retains the tap's activation.
     await navigator.share({ files: sharedMonthFiles });
   } catch (error) {
-    if (revision === shareMonthRevision && error.name !== "AbortError") shareMonthStatus.textContent = t("shareFilesFallback");
+    if (error.name !== "AbortError" && key === sharedMonthKey && key === monthShareKey()) showShareDownloads();
   } finally {
-    if (revision === shareMonthRevision) shareFilesButton.disabled = false;
+    shareMonthButton.disabled = navigationBusy || sharedMonthFiles.length !== 2;
   }
-});
+}
 
 function splitCanvasForPdf(canvas, mimeType = "image/png", quality) {
   const pageHeight = Math.floor(canvas.height / EXPORT_PAGE_COUNT);

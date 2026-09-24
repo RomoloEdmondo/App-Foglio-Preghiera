@@ -1079,7 +1079,7 @@ html[lang="de"] .prayer-table { min-width: 0; }
 .toolbar .export-group { grid-template-columns: repeat(4, auto); }
 .toolbar .share-action { background: #eaf4ee; color: #215447; border: 1px solid #7aa98a; }
 @media screen and (max-width: 760px) {
-  .toolbar { grid-template-columns: 40px max-content minmax(8px, 1fr) 40px max-content max-content max-content; column-gap: 4px; }
+  .toolbar { --mobile-action-size: 44px; grid-template-columns: var(--mobile-action-size) 72px minmax(8px, 1fr) repeat(4, var(--mobile-action-size)); column-gap: 4px; }
   .toolbar .action-group, .toolbar .export-group { display: contents; }
   .toolbar #previousMonthButton { grid-column: 1; }
   .toolbar > #saveButton { grid-column: 2; margin: 0; }
@@ -1088,11 +1088,12 @@ html[lang="de"] .prayer-table { min-width: 0; }
   .toolbar #imageButton { grid-column: 6; }
   .toolbar #wordButton { grid-column: 7; }
   .toolbar #previousMonthButton, .toolbar > #saveButton, .toolbar .export-group button {
-    grid-row: 2; width: 100%; min-width: 0; height: 44px; min-height: 44px; padding: 0 5px; align-self: center;
+    grid-row: 2; width: 100%; min-width: 0; height: var(--mobile-action-size); min-height: var(--mobile-action-size); padding: 0 5px; align-self: center;
   }
-  .toolbar #shareMonthButton > .icon { display: inline-flex; }
-  .toolbar #shareMonthButton > span:last-child { display: none; }
+  .toolbar #shareMonthButton > .icon, .toolbar #imageButton > .icon { display: inline-flex; }
+  .toolbar #shareMonthButton > span:last-child, .toolbar #imageButton > span:last-child { display: none; }
 }
 @media screen and (max-width: 360px) {
+  .toolbar { --mobile-action-size: 40px; grid-template-columns: var(--mobile-action-size) 64px minmax(8px, 1fr) repeat(4, var(--mobile-action-size)); }
   .toolbar button { font-size: 0.66rem; }
 }
