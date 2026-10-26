@@ -1,0 +1,24 @@
+name: Supabase daily healthcheck
+
+on:
+  schedule:
+    - cron: '23 7 * * *'
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths:
+      - '.github/workflows/supabase-healthcheck.yml'
+      - 'scripts/check-supabase.mjs'
+      - 'supabase-config.js'
+
+permissions:
+  contents: read
+
+jobs:
+  healthcheck:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Check Supabase database
+        run: node scripts/check-supabase.mjs

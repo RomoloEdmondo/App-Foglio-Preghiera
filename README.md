@@ -55,6 +55,14 @@ where language = 'de'
   and user_id in (select id from auth.users where lower(email) = lower('persona@example.com'));
 ```
 
+## Controllo giornaliero Supabase
+
+Il workflow `.github/workflows/supabase-healthcheck.yml` esegue ogni giorno alle 07:23 UTC (08:23 in Italia in inverno, 09:23 in estate) tre richieste al database, anche senza visitatori sul sito. Si può avviare anche da GitHub → Actions → Supabase daily healthcheck → Run workflow. Gli errori fanno fallire il controllo e sono visibili in Actions; le notifiche dipendono dalle preferenze GitHub dell’account.
+
+La funzione `app_healthcheck()`, installata con `supabase-healthcheck.sql`, restituisce soltanto `true`: non legge né modifica fogli, utenti o appartenenze ai gruppi. Il controllo usa la chiave pubblica già presente nel sito e non richiede password o chiavi amministrative. Per provarlo: `node scripts/check-supabase.mjs`.
+
+Le richieste quotidiane riducono il rischio di sospensione per inattività, ma il piano gratuito non offre garanzie: [Supabase garantisce l’esclusione dalla sospensione per inattività sui piani a pagamento](https://supabase.com/docs/guides/platform/free-project-pausing). GitHub può ritardare le esecuzioni e disabilita i workflow pianificati nei repository pubblici dopo 60 giorni senza attività sul repository: in quel caso riabilitare il workflow in Actions. Il controllo non riattiva un progetto già sospeso; serve Resume dal pannello Supabase.
+
 ## Verifiche
 
 Con Node.js 20 o successivo: `npm ci`, `npx playwright install chromium`, `npm test`. Per usare Chrome già installato impostare `TEST_BROWSER_CHANNEL=chrome` prima di eseguire i test.
