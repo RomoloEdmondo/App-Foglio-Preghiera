@@ -87,7 +87,8 @@
     "shareFilesHint": "Scegli un’app per condividere entrambi i file, oppure scaricali separatamente.",
     "shareFilesFallback": "La condivisione degli allegati non è disponibile su questo dispositivo. Scarica i due file e allegali alla tua email.",
     "shareFilesError": "Non è stato possibile preparare i file. Chiudi e riprova.",
-    "downloadPdf": "Scarica PDF"
+    "downloadPdf": "Scarica PDF",
+    "admin": "Amministrazione"
   },
   "months": [
     "gennaio",

@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#2f6f61">
+  <title>Amministrazione · Foglio di preghiera</title>
+  <link rel="icon" href="../assets/favicon.ico">
+  <link rel="stylesheet" href="admin.css?v=9d9023e81f88">
+</head>
+<body>
+  <a class="skip" href="#main">Vai al contenuto</a>
+  <section id="gate" class="gate">
+    <div class="gate-card">
+      <img src="../assets/logo-italiano.jpeg" alt="Chiesa Evangelica Ruchheim" width="76" height="76">
+      <p class="eyebrow">Foglio di preghiera</p><h1>Area manutenzione</h1>
+      <p class="muted">Uno spazio riservato per prenderti cura dell’app.</p>
+      <p id="gateMessage" role="status">Verifica della sessione…</p>
+      <form id="adminLogin" hidden>
+        <label>Email<input name="email" type="email" value="romolo.91@live.it" autocomplete="username" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary" type="submit">Accedi all’amministrazione</button>
+      </form>
+      <div class="gate-actions"><button id="retryGate" type="button" hidden>Riprova</button><button id="switchAccount" type="button" hidden>Cambia account</button><a href="../it/">Torna al foglio →</a></div>
+    </div>
+  </section>
+  <div id="dashboard" hidden>
+    <aside class="sidebar">
+      <a class="brand" href="../it/"><img src="../assets/logo-italiano.jpeg" alt="" width="42" height="42"><span>Foglio di preghiera<small>AMMINISTRAZIONE</small></span></a>
+      <div class="sidebar-label">IL TUO SPAZIO DI GESTIONE</div>
+      <nav aria-label="Sezioni amministrazione">
+        <a href="#overview"><span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg></span> Panoramica</a>
+        <a href="#database"><span aria-hidden="true"><svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 4 16 4 16 0V5M4 12c0 4 16 4 16 0"/></svg></span> Database e spazio</a>
+        <a href="#access"><span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6M18 15a5 5 0 0 1 3 4v2"/></svg></span> Utenti e accessi</a>
+        <a href="#connections"><span aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 3h7v7M21 3 10 14M10 3H4a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-6"/></svg></span> API e collegamenti</a>
+        <a href="#activity"><span aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 6v6l4 2"/></svg></span> Registro modifiche</a>
+      </nav>
+      <div class="sidebar-bottom"><span class="badge">Accesso riservato</span><p>Una sola app.<br>Due gruppi, dati separati.</p><a href="../it/">← Torna al foglio</a></div>
+    </aside>
+    <div class="admin-body">
+      <header class="topbar"><span>Manutenzione <span class="slash">/</span> <strong>Produzione</strong></span><div class="owner"><span class="avatar" aria-hidden="true">R</span><span>Romolo<small>Amministratore</small></span><button id="adminLogout" type="button">Esci</button></div></header>
+      <main id="main" tabindex="-1">
+        <section id="overview" class="section">
+          <div class="page-heading"><div><p class="eyebrow">CENTRO DI CONTROLLO</p><h1>La tua app, sotto controllo.</h1><p class="muted">Servizi, dati e accessi. Tutto il necessario, in un unico posto.</p></div><button id="refresh" class="primary" type="button">↻ Aggiorna stato</button></div>
+          <div id="notice" class="notice" role="status" hidden></div>
+          <div class="health-strip"><span class="status-dot" aria-hidden="true"></span><div><strong id="healthTitle">Connessione verificata</strong><p id="checkedAt"></p></div><span class="badge">Produzione</span></div>
+          <div id="stats" class="stats"></div>
+          <div class="two-columns"><article class="card"><div class="card-heading"><div><p class="eyebrow">SERVIZI</p><h2>Stato operativo</h2></div><span class="badge">Verificato ora</span></div><div id="services"></div><p class="footnote">Controllo puntuale della connessione, non uno storico di disponibilità. Il tempo include le richieste ai servizi.</p></article><article class="card"><div class="card-heading"><div><p class="eyebrow">I DUE GRUPPI</p><h2>Ultime attività sui fogli</h2></div></div><div id="groups"></div><a class="text-link" href="#access">Gestisci chi può accedere →</a></article></div>
+        </section>
+        <section id="database" class="section"><div class="section-heading"><div><p class="eyebrow">DATI E CAPACITÀ</p><h2>Database e spazio</h2></div><a data-console="database/backups" class="text-link" target="_blank" rel="noopener noreferrer">Backup su Supabase ↗</a></div>
+          <div class="two-columns"><article class="card"><h3>Distribuzione dello spazio</h3><p class="muted">Dimensioni reali, indici inclusi.</p><div id="space"></div><p class="footnote">Il totale database comprende anche gli schemi interni. File statici e librerie sono ospitati su GitHub Pages.</p></article><article class="card"><h3>Storage e limiti del piano</h3><div id="storage"></div><div class="callout">Quote, traffico, costi e backup disponibili dipendono dal piano. Consulta il pannello del fornitore per i valori aggiornati.</div><a href="https://supabase.com/dashboard/org/fpoxpnjxqruflovwybxu/usage" class="text-link" target="_blank" rel="noopener noreferrer">Apri utilizzo e quote ↗</a></article></div>
+          <article class="card table-card"><div class="card-heading"><h3>Inventario delle tabelle</h3><span id="dbVersion" class="badge"></span></div><div class="table-scroll"><table><caption class="sr-only">Tabelle del database pubblico, dimensioni e sicurezza</caption><thead><tr><th>Tabella</th><th>Dimensione</th><th>Protezione righe</th><th>Policy</th></tr></thead><tbody id="tableRows"></tbody></table></div><p class="footnote">RLS attivo indica che le regole sono abilitate, non certifica la loro correttezza. Il registro admin è leggibile solo dal servizio.</p></article>
+        </section>
+        <section id="access" class="section"><div class="section-heading"><div><p class="eyebrow">PERMESSI</p><h2>Utenti e accessi</h2><p class="muted">Abilita i gruppi degli account esistenti. Ogni modifica viene registrata.</p></div><a data-console="auth/users" class="text-link" target="_blank" rel="noopener noreferrer">Gestisci account su Supabase ↗</a></div>
+          <article class="card table-card"><div class="card-heading"><label class="search-label">Cerca utente<input id="userSearch" type="search" placeholder="Cerca per email…" autocomplete="off"></label><span id="userCount" class="badge"></span></div><div class="table-scroll"><table class="users-table"><caption class="sr-only">Abilitazioni degli utenti ai gruppi</caption><thead><tr><th>Account</th><th>Ultimo accesso</th><th>Italiano</th><th>Tedesco</th></tr></thead><tbody id="userRows"></tbody></table></div><p class="footnote">Disabilitare un gruppo blocca l’accesso ai suoi dati. Non elimina l’account né i fogli. Il tuo account è protetto da modifiche accidentali.</p></article>
+        </section>
+        <section id="connections" class="section"><div class="section-heading"><div><p class="eyebrow">CONNESSIONI</p><h2>API e collegamenti</h2></div><button id="downloadReport" type="button">Scarica report tecnico</button></div>
+          <div class="two-columns"><article class="card"><h3>Configurazione API</h3><p class="muted">Endpoint del progetto e chiave pubblicabile dell’app.</p><div id="apiDetails"></div><details><summary>Visualizza chiave pubblica</summary><code id="publicKey" class="code-block"></code><button id="copyKey" type="button">Copia chiave pubblica</button><p class="footnote">Questa chiave è già utilizzata nel browser. Non concede privilegi amministrativi.</p></details><a data-console="settings/api-keys" class="text-link" target="_blank" rel="noopener noreferrer">Gestisci le chiavi su Supabase ↗</a></article><article class="card"><h3>Link di accesso all’app</h3><div id="appLinks"></div><p class="footnote">Sono indirizzi di ingresso: ogni persona deve accedere con il proprio account autorizzato.</p></article></div>
+          <div id="operatorLinks" class="link-grid"></div>
+        </section>
+        <section id="activity" class="section"><div class="section-heading"><div><p class="eyebrow">TRACCIABILITÀ</p><h2>Registro modifiche</h2><p class="muted">Le ultime 50 modifiche ai gruppi effettuate da questo pannello.</p></div></div><article class="card" id="auditRows"></article></section>
+        <footer class="admin-footer"><span>Foglio di preghiera · Area manutenzione</span><span>Versione <code>9d9023e81f88</code></span></footer>
+      </main>
+    </div>
+  </div>
+  <dialog id="confirmMembership"><form method="dialog"><p class="eyebrow">MODIFICA ACCESSO</p><h2 id="confirmTitle"></h2><p id="confirmDescription"></p><div class="dialog-actions"><button value="cancel">Annulla</button><button id="confirmChange" value="confirm" class="primary">Conferma modifica</button></div></form></dialog>
+  <script src="../supabase-config.js"></script><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script><script src="admin.js?v=9d9023e81f88" data-version="9d9023e81f88"></script>
+</body>
+</html>

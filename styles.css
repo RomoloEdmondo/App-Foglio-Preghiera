@@ -1097,3 +1097,6 @@ html[lang="de"] .prayer-table { min-width: 0; }
   .toolbar { --mobile-action-size: 40px; grid-template-columns: var(--mobile-action-size) 64px minmax(8px, 1fr) repeat(4, var(--mobile-action-size)); }
   .toolbar button { font-size: 0.66rem; }
 }
+
+.account-dropdown #adminLink { display: flex; align-items: center; min-height: 44px; padding: 10px 12px; margin-bottom: 6px; border-radius: 8px; font-size: .8rem; font-weight: 600; text-decoration: none; background: #edf3ee; color: var(--accent-strong); }
+.account-dropdown #adminLink:hover { background: #dfece2; }

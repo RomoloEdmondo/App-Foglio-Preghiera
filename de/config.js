@@ -88,7 +88,8 @@ window.PRAYER_APP = Object.freeze({
     "shareFilesHint": "Wähle eine App, um beide Dateien zu teilen, oder lade sie einzeln herunter.",
     "shareFilesFallback": "Das Teilen von Anhängen ist auf diesem Gerät nicht verfügbar. Lade beide Dateien herunter und füge sie deiner E-Mail hinzu.",
     "shareFilesError": "Die Dateien konnten nicht erstellt werden. Bitte schließen und erneut versuchen.",
-    "downloadPdf": "PDF herunterladen"
+    "downloadPdf": "PDF herunterladen",
+    "admin": "Administration"
   },
   "months": [
     "Januar",

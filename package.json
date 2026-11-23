@@ -4,7 +4,8 @@
   "version": "2.0.0",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "test": "node tests/app.cjs"
+    "test": "node tests/app.cjs",
+    "test:admin": "node tests/admin.cjs"
   },
   "engines": {
     "node": ">=20"

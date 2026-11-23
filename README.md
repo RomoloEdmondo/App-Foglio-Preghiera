@@ -70,3 +70,19 @@ Con Node.js 20 o successivo: `npm ci`, `npx playwright install chromium`, `npm t
 I test browser intercettano tutte le richieste al backend e non scrivono nel database reale. Verificano i due ingressi, login/logout, traduzioni, salvataggi indipendenti, recupero delle modifiche non sincronizzate, importazione, domeniche, esportazioni e accesso negato. Le anteprime e i PDF di prova sono in `test-results/`, esclusa da Git.
 
 `tests/group-permissions.sql` verifica i permessi nel database con record temporanei e rollback finale. Richiede due account bilingui e uno solo italiano e riserva dicembre 2199 per le prove; eseguirlo come amministratore. Controlla lettura, scrittura, aggiornamento, cancellazione e impossibilità di assegnarsi da soli un gruppo.
+
+## Amministrazione
+
+L’area `/admin/` è accessibile dal menu utente di Romolo in entrambe le lingue. Offre metriche live di database e Storage, inventario delle tabelle e RLS, ultimo aggiornamento dei gruppi, gestione delle abilitazioni IT/DE, registro delle ultime 50 modifiche, endpoint API e chiave pubblicabile, link ai servizi e report diagnostico JSON. Quote, fatturazione, backup, creazione account e log completi si gestiscono nelle console collegate; non vengono presentati valori stimati come dati reali. Il report non è un backup e non include email o chiavi.
+
+L’interfaccia è in italiano e riprende colori, logo e tipografia dell’app. I dati amministrativi non sono inclusi nel sito statico: vengono richiesti alla Edge Function `maintenance-admin`. L’identità è verificata con `auth.getUser(token)` per ogni richiesta, controllando UUID, email e conferma email del titolare. Il link nel menu è solo una comodità, non il controllo di sicurezza. Non sono utilizzati `user_metadata` o controlli solo nel browser per autorizzare le operazioni.
+
+Backend e riproducibilità:
+
+- `supabase-admin.sql` contiene lo schema iniziale applicato tramite la migrazione remota `maintenance_admin_service_api`. Le due RPC sono `SECURITY INVOKER`, eseguibili esclusivamente da `service_role`. Il registro ha RLS attivo senza policy per i client, intenzionalmente: gli utenti ordinari non possono leggerlo o scriverlo.
+- `supabase/functions/maintenance-admin/` contiene il codice distribuito. Usa le variabili server predefinite `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`; nessuna chiave riservata viene scritta nei file pubblici. `verify_jwt` è disattivato al gateway perché il corpo verifica esplicitamente la sessione con Auth; richieste anonime o con token non valido ricevono 401, account diversi ricevono 403.
+- L’UUID del proprietario è fissato nel backend e nella RPC. Se l’account viene ricreato, occorre aggiornare questi riferimenti e quello del collegamento nel menu, verificando prima l’identità del nuovo account. Le abilitazioni del proprietario non sono modificabili dal pannello.
+- Ogni modifica ai gruppi e la relativa voce di registro sono una singola transazione. Non vengono eliminate persone o preghiere. Le operazioni amministrative non consentono SQL arbitrario.
+- `npm run build` genera anche `admin/index.html` con versione degli asset. `npm run test:admin` verifica autorizzazione server, UI, layout mobile, gestione gruppi, annullamento, errori, report e logout con backend simulato. `npm test` verifica le funzionalità del foglio.
+
+Verifiche di rilascio: misurazioni reali con ruolo `service_role`; assenza di privilegi sulle RPC e sul registro per `anon`/`authenticated`; modifica e revoca di prova in una transazione annullata; rifiuto HTTP 401 dall’endpoint live senza una sessione valida. L’advisor segnala come informativo il registro senza policy (scelta intenzionale). È inoltre presente l’avviso preesistente di protezione password compromesse disattivata: gestione in Supabase Auth, [documentazione](https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection).

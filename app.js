@@ -330,6 +330,8 @@ async function initAuth() {
 async function updateAuthState(session) {
   const revision = ++authRevision;
   languageLink.hidden = true;
+  // This link is only a convenience; the maintenance API verifies identity on every request.
+  document.querySelector('#adminLink').hidden = session?.user?.id !== 'dbe3d8e8-3e14-4010-b227-a8dad5e7c1a3';
   closeAccountDropdown();
   if (!session || session.user.id !== authorizedUserId) {
     if (imagePreview.open) imagePreview.close();

@@ -9,7 +9,7 @@ mkdirSync(resolve(root, 'assets/vendor'), { recursive: true });
 copyFileSync(resolve(root, 'node_modules/docx/dist/index.iife.js'), resolve(root, 'assets/vendor/docx.js'));
 copyFileSync(resolve(root, 'node_modules/docx/LICENSE'), resolve(root, 'assets/vendor/docx-LICENSE'));
 const template = read('templates/app.html');
-const version = createHash('sha256').update(read('app.js') + read('styles.css') + template + read('locales/it.json') + read('locales/de.json')).digest('hex').slice(0, 12);
+const version = createHash('sha256').update(read('app.js') + read('styles.css') + read('admin/admin.js') + read('admin/admin.css') + read('templates/admin.html') + template + read('locales/it.json') + read('locales/de.json')).digest('hex').slice(0, 12);
 const escape = (text) => String(text).replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
 
 for (const lang of ['it', 'de']) {
@@ -28,4 +28,6 @@ for (const lang of ['it', 'de']) {
   manifest.icons = manifest.icons.map(icon => ({ ...icon, src: '../' + icon.src }));
   writeFileSync(resolve(root, lang, 'site.webmanifest'), JSON.stringify(manifest, null, 2) + '\n');
 }
-console.log('Built Italian and German pages.');
+mkdirSync(resolve(root, 'admin'), { recursive: true });
+writeFileSync(resolve(root, 'admin/index.html'), read('templates/admin.html').replaceAll('{{version}}', version));
+console.log('Built Italian, German and admin pages.');

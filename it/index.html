@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="App Foglio di Preghiera" />
     <meta name="twitter:description" content="Calendario mensile dei soggetti di preghiera." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=6402e05a0560" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=6402e05a0560" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=6402e05a0560" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=6402e05a0560" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=9d9023e81f88" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=9d9023e81f88" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=9d9023e81f88" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=9d9023e81f88" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=6402e05a0560" />
+    <link rel="stylesheet" href="../styles.css?v=9d9023e81f88" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -89,6 +89,7 @@
               <span class="account-chevron icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m6 9 6 6 6-6"/></svg></span>
             </button>
             <div id="accountDropdown" class="account-dropdown" hidden>
+            <a id="adminLink" href="../admin/" hidden>Amministrazione</a>
             <button id="logoutButton" class="logout-button" type="button">
               <span class="icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" focusable="false">
@@ -238,11 +239,11 @@
       <div class="preview-canvas"><img id="previewImage" alt="Foglio mensile di preghiera" hidden /></div>
     </dialog>
 
-    <script src="config.js?v=6402e05a0560"></script>
+    <script src="config.js?v=9d9023e81f88"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../assets/vendor/docx.js?v=6402e05a0560"></script>
-    <script src="../app.js?v=6402e05a0560"></script>
+    <script src="../assets/vendor/docx.js?v=9d9023e81f88"></script>
+    <script src="../app.js?v=9d9023e81f88"></script>
   </body>
 </html>
