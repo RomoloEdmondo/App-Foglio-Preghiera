@@ -452,6 +452,7 @@ function initControls() {
   printButton.addEventListener("click", exportPdf);
   shareMonthButton.addEventListener("click", shareMonthDirect);
   imageButton.addEventListener("click", exportImage);
+  document.querySelector("#downloadImageLink").addEventListener("click", () => recordExportActivity("image_download"));
   wordButton.addEventListener("click", exportWord);
 
   accountButton.addEventListener("click", () => {
@@ -757,6 +758,7 @@ async function exportImage() {
     previewHint.textContent = t(canShare ? "imageHint" : "imageFallbackHint");
     previewHint.hidden = false;
     previewActions.hidden = false;
+    recordExportActivity("image_preview");
     previewStatus.textContent = "";
   } catch {
     if (revision === previewRevision) previewStatus.textContent = t("imageError");
@@ -781,6 +783,7 @@ shareImageButton.addEventListener("click", async () => {
   try {
     // Must run directly from this tap, after the file has already been prepared.
     await navigator.share({ files: [previewFile] });
+    recordExportActivity("share");
   } catch (error) {
     if (error.name !== "AbortError") previewStatus.textContent = t("shareError");
   } finally {
@@ -838,6 +841,7 @@ async function exportWord() {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 60000);
+    recordExportActivity("word");
     showToast(t("wordExported"));
   } catch (error) {
     console.error("Word export failed", error);
@@ -864,6 +868,7 @@ async function exportPdf() {
     }
     const pdf = createPdfDocument();
     pdf.save(`${title}.pdf`);
+    recordExportActivity("pdf");
     showToast(t("pdfExported"));
   } finally {
     printButton.disabled = false;
@@ -942,6 +947,7 @@ function showShareDownloads() {
     const link = document.getElementById(id);
     link.href = sharedMonthUrls[index];
     link.download = sharedMonthFiles[index].name;
+    link.onclick = () => recordExportActivity(index === 0 ? "pdf" : "image_download");
   });
   shareMonthActions.hidden = false;
   shareMonthStatus.textContent = t("shareFilesFallback");
@@ -961,6 +967,7 @@ async function shareMonthDirect() {
   try {
     // Files are prepared beforehand, so this call retains the tap's activation.
     await navigator.share({ files: sharedMonthFiles });
+    recordExportActivity("share");
   } catch (error) {
     if (error.name !== "AbortError" && key === sharedMonthKey && key === monthShareKey()) showShareDownloads();
   } finally {
@@ -1568,3 +1575,8 @@ window.addEventListener("beforeunload", () => {
   if (monthLoaded && authorizedUserId && dirty) saveLocalMonth();
 });
 initAuth();
+
+function recordExportActivity(action) {
+  if (!authorizedUserId) return;
+  supabaseClient.rpc('record_export',{p_action:action,p_language:appConfig.lang,p_year:state.year,p_month:state.month+1}).then(({error})=>{if(error)console.warn('Activity log unavailable');}).catch(()=>{});
+}

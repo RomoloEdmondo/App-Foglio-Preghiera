@@ -5,3 +5,5 @@
 
 nav svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;vertical-align:middle}
 @media(max-width:600px){.users-table{min-width:0}.users-table thead{position:absolute;clip-path:inset(50%);width:1px;height:1px;overflow:hidden}.users-table,.users-table tbody{display:block}.users-table tr{display:block;padding:14px 0;border-bottom:1px solid var(--line)}.users-table td{display:flex;justify-content:space-between;gap:12px;border:0;padding:7px 0;align-items:center}.users-table td:first-child{display:block;overflow-wrap:anywhere}.users-table td[data-label]::before{content:attr(data-label);font-size:.75rem;color:var(--muted)}.toggle{min-height:44px}}
+
+#userForm label{display:block;margin:14px 0;font-size:.8rem}#userForm input{margin-top:5px}#userError{color:#a33449}.users-table td[data-label="Gestione"] button{font-size:.72rem;margin:3px 0}

@@ -15,7 +15,7 @@ const sample={checkedAt:new Date().toISOString(),databaseBytes:12725395,postgres
 (async()=>{
   const {createHandler}=await import('data:text/javascript;base64,'+Buffer.from(readFileSync(resolve(root,'supabase/functions/maintenance-admin/handler.js'),'utf8')).toString('base64'));
   let calls=0;
-  const backend={auth:{getUser:async token=>({data:{user:token==='owner'?{id:ownerId,email:'romolo.91@live.it',email_confirmed_at:'2026-01-01'}:token==='forged'?{id:otherId,email:'romolo.91@live.it',email_confirmed_at:'2026-01-01'}:null}}),admin:{getUserById:async()=>({data:{user:{id:otherId}}}),listUsers:async()=>({data:{users:[]}})}},rpc:async(name,args)=>{calls++;return {data:name==='maintenance_snapshot'?sample:null}},from:()=>({select:()=>({limit:async()=>({data:[]}),order:()=>({limit:async()=>({data:[]})})})})};
+  const backend={auth:{getUser:async token=>({data:{user:token==='owner'?{id:ownerId,email:'romolo.91@live.it',email_confirmed_at:'2026-01-01'}:token==='forged'?{id:otherId,email:'romolo.91@live.it',email_confirmed_at:'2026-01-01'}:null}}),admin:{createUser:async()=>({data:{user:{id:otherId,email:'new@example.invalid'}}}),updateUserById:async()=>({data:{}}),deleteUser:async()=>({data:{}}),getUserById:async()=>({data:{user:{id:otherId,email:'gruppo@example.invalid'}}}),listUsers:async()=>({data:{users:[]}})}},rpc:async(name,args)=>{calls++;return {data:name==='maintenance_snapshot'?sample:null}},from:()=>({insert:async()=>({error:null}),select:()=>({limit:async()=>({data:[]}),order:()=>({limit:async()=>({data:[]})})})})};
   const handler=createHandler(backend);
   const invoke=(token,body)=>handler(new Request('http://localhost',{method:'POST',headers:{...(token?{Authorization:'Bearer '+token}:{}),'Content-Type':'application/json'},body:JSON.stringify(body)}));
   assert.equal((await invoke(null,{action:'overview'})).status,401);
@@ -28,6 +28,13 @@ const sample={checkedAt:new Date().toISOString(),databaseBytes:12725395,postgres
   assert.equal((await invoke('owner',{action:'membership',userId:otherId,language:'de',enabled:true})).status,200);
   assert.equal((await invoke('owner',{action:'sql',query:'drop table'})).status,400);
   assert.equal((await handler(new Request('http://localhost',{method:'OPTIONS',headers:{Origin:'https://evil.invalid'}}))).status,403);
+  assert.equal((await invoke('forged',{action:'delete_user',userId:otherId})).status,403);
+  assert.equal((await invoke('owner',{action:'delete_user',userId:ownerId,confirmEmail:'romolo.91@live.it'})).status,400);
+  assert.equal((await invoke('owner',{action:'delete_user',userId:otherId,confirmEmail:'wrong@example.invalid'})).status,400);
+  assert.equal((await invoke('owner',{action:'delete_user',userId:otherId,confirmEmail:'gruppo@example.invalid'})).status,200);
+  assert.equal((await invoke('owner',{action:'create_user',email:'new@example.invalid',password:'Long-test-password!'})).status,200);
+  assert.equal((await invoke('owner',{action:'reset_password',userId:otherId,password:'short'})).status,400);
+  assert.equal((await invoke('owner',{action:'reset_password',userId:otherId,password:'Long-test-password!'})).status,200);
   console.log('PASS backend: verified owner, forged-email rejection, missing/invalid sessions, protected owner, validated changes, no arbitrary operations.');
   const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css','.jpeg':'image/jpeg','.png':'image/png'};
   const server=createServer((req,res)=>{let path=new URL(req.url,'http://local').pathname;if(path.endsWith('/'))path+='index.html';const file=resolve(root,'.'+decodeURIComponent(path));if(!file.startsWith(root+sep)){res.writeHead(403).end();return;}try{res.writeHead(200,{'Content-Type':mime[extname(file)]||'application/octet-stream'});res.end(readFileSync(file));}catch{res.writeHead(404).end();}});
@@ -48,6 +55,7 @@ const sample={checkedAt:new Date().toISOString(),databaseBytes:12725395,postgres
         if(fail)return json({error:'Servizio momentaneamente non disponibile.'},503);
         const body=req.postDataJSON();
         if(body.action==='overview')return json(sample);
+        if(['create_user','reset_password','delete_user'].includes(body.action))return json({saved:true});
         if(body.action==='membership'){
           changes++;sample.memberships=sample.memberships.filter(m=>!(m.user_id===body.userId&&m.language===body.language));
           if(body.enabled)sample.memberships.push({user_id:body.userId,language:body.language});
@@ -74,11 +82,15 @@ const sample={checkedAt:new Date().toISOString(),databaseBytes:12725395,postgres
     await target.click();await page.getByRole('button',{name:'Annulla',exact:true}).click();assert.equal(changes,0);
     await target.click();await page.locator('#confirmChange').click();await page.waitForFunction(()=>document.querySelector('#notice').textContent.includes('Accesso aggiornato'));
     assert.equal(changes,1);assert.equal(await target.getAttribute('aria-pressed'),'true');assert((await page.locator('#auditRows').innerText()).includes('Accesso abilitato'));
+    await page.locator('#createUser').click();await page.locator('#userForm [name=email]').fill('new@example.invalid');await page.locator('#userForm [name=password]').fill('Long-test-password!');await page.locator('#userForm button[type=submit]').click();await page.locator('#userDialog').waitFor({state:'hidden'});await page.waitForFunction(()=>!document.querySelector('#refresh').disabled);
+    await page.locator('[data-operation=reset_password]').click();await page.locator('#userForm [name=password]').fill('Long-test-password!');await page.locator('#userForm button[type=submit]').click();await page.locator('#userDialog').waitFor({state:'hidden'});await page.waitForFunction(()=>!document.querySelector('#refresh').disabled);
+    await page.locator('[data-operation=delete_user]').click();await page.locator('#cancelUser').click();assert(await page.locator('#userDialog').isHidden());
+    await page.locator('#access').screenshot({path:resolve(root,'test-results/admin-users.png')});
     const download=page.waitForEvent('download');await page.locator('#downloadReport').click();const report=await download;const body=readFileSync(await report.path(),'utf8');assert(!body.includes('romolo.91'));assert(!body.includes('sb_publishable'));
     fail=true;await page.locator('#refresh').click();await page.locator('#gate').waitFor({state:'visible'});assert.equal(await page.locator('#userRows').innerText(),'');fail=false;await page.locator('#retryGate').click();await page.locator('#dashboard').waitFor({state:'visible'});
     await page.locator('#adminLogout').click();await page.locator('#adminLogin').waitFor({state:'visible'});assert.equal(await page.locator('#publicKey').innerText(),'');
     deny=true;const denied=await open();await denied.getByText('Area riservata al manutentore.',{exact:true}).waitFor();assert(await denied.locator('#dashboard').isHidden());assert.equal(await denied.locator('#userRows').innerText(),'');deny=false;
-    const login=await open(false);await login.locator('#adminLogin').waitFor({state:'visible'});await login.locator('input[name=password]').fill('test-only');await login.getByRole('button',{name:'Accedi all’amministrazione'}).click();await login.locator('#dashboard').waitFor({state:'visible'});
+    const login=await open(false);await login.locator('#adminLogin').waitFor({state:'visible'});await login.locator('#adminLogin input[name=password]').fill('test-only');await login.getByRole('button',{name:'Accedi all’amministrazione'}).click();await login.locator('#dashboard').waitFor({state:'visible'});
     await login.goto(`http://127.0.0.1:${server.address().port}/it/`);await login.locator('#appShell').waitFor({state:'visible'});await login.locator('#accountButton').click();assert(await login.locator('#adminLink').isVisible());
     assert.deepEqual(errors,[]);
     console.log('PASS admin UI: desktop/mobile, access denial, login/logout, search, confirmation/cancel, membership persistence, audit, report, failure/retry, owner menu link.');

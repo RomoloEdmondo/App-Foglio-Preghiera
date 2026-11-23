@@ -44,6 +44,7 @@ const server = createServer((req, res) => {
       if (url.pathname.includes('/auth/v1/logout')) return json({});
       if (url.pathname.includes('/auth/v1/token')) return json(session);
       if (url.pathname.includes('/auth/v1/user')) return json(session.user);
+      if (url.pathname.endsWith('/rpc/record_export')) return json(null);
       const table = url.pathname.split('/').pop();
       if (table === 'prayer_group_members') {
         const language = url.searchParams.get('language')?.slice(3);

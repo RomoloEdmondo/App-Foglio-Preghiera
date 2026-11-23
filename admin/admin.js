@@ -8,6 +8,7 @@
   const consoleBase = `https://supabase.com/dashboard/project/${project}/`;
   const appBase = new URL('../', location.href).href;
   const version = document.currentScript.dataset.version;
+  let userOperation = null;
   let snapshot = null, epoch = 0, sessionUser = null, busy = false, pendingChange = null;
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const date = value => value ? new Intl.DateTimeFormat('it-IT',{dateStyle:'medium',timeStyle:'short',timeZone:'Europe/Berlin'}).format(new Date(value)) : 'Nessuna attività';
@@ -21,6 +22,7 @@
   function notice(message) { $('#notice').textContent = message; $('#notice').hidden = !message; }
   function clearPrivateContent() {
     snapshot = null; pendingChange = null;
+    userOperation=null; $("#userForm").reset(); if($("#userDialog").open) $("#userDialog").close();
     if ($('#confirmMembership').open) $('#confirmMembership').close();
     $('#dashboard').hidden = true;
     for (const id of ['stats','services','groups','space','storage','tableRows','userRows','auditRows','apiDetails','appLinks','operatorLinks','publicKey']) $('#' + id).replaceChildren();
@@ -56,8 +58,8 @@
         const enabled = snapshot.memberships.some(m => m.user_id === user.id && m.language === lang);
         return `<button class="toggle" type="button" data-user="${escape(user.id)}" data-language="${lang}" data-enabled="${!enabled}" aria-pressed="${enabled}" aria-label="Accesso ${lang === 'it' ? 'italiano' : 'tedesco'} per ${escape(user.email)}" ${owner || busy ? 'disabled' : ''}>${enabled ? '✓ Attivo' : 'Non attivo'}</button>`;
       };
-      return `<tr><td><strong>${escape(user.email)}</strong><small>${owner ? 'Tu · amministratore' : user.confirmed ? 'Email confermata' : 'Email da confermare'}</small></td><td data-label="Ultimo accesso">${escape(date(user.lastSignIn))}</td><td data-label="Italiano">${toggle('it')}</td><td data-label="Tedesco">${toggle('de')}</td></tr>`;
-    }).join('') : '<tr><td colspan="4" class="empty">Nessun account corrisponde alla ricerca.</td></tr>';
+      return `<tr><td><strong>${escape(user.email)}</strong><small>${owner ? 'Tu · amministratore' : user.confirmed ? 'Email confermata' : 'Email da confermare'}</small></td><td data-label="Ultimo accesso">${escape(date(user.lastSignIn))}</td><td data-label="Italiano">${toggle('it')}</td><td data-label="Tedesco">${toggle('de')}</td><td data-label="Gestione">${owner ? 'Protetto' : `<button type="button" data-operation="reset_password" data-target="${escape(user.id)}">Password</button> <button type="button" data-operation="delete_user" data-target="${escape(user.id)}">Elimina</button>`}</td></tr>`;
+    }).join('') : '<tr><td colspan="5" class="empty">Nessun account corrisponde alla ricerca.</td></tr>';
   }
   function render(data) {
     snapshot = data;
@@ -90,6 +92,11 @@
       const email = data.users.find(user => user.id === entry.target_id)?.email || entry.target_id;
       return `<div class="audit-entry"><strong>${entry.enabled ? 'Accesso abilitato' : 'Accesso revocato'} · ${entry.language === 'it' ? 'Italiano' : 'Tedesco'}</strong><div>${escape(email)}</div><small>${escape(date(entry.created_at))} · Romolo</small></div>`;
     }).join('') : '<div class="empty">Nessuna modifica registrata.<br>Le operazioni effettuate qui compariranno in questo registro.</div>';
+    const labels={save:'Foglio salvato',pdf:'PDF generato · download richiesto',word:'Word generato · download richiesto',image_preview:'Anteprima immagine generata',image_download:'Download immagine richiesto',share:'Condivisione completata',create_user:'Utente creato',reset_password:'Password reimpostata',delete_user:'Utente eliminato'};
+    const operational=(data.activity||[]).map(entry=>({at:entry.created_at,title:labels[entry.action]||entry.action,detail:[entry.actor_email||'Operazione di sistema',entry.target_email,entry.language && entry.language.toUpperCase(),entry.month && (entry.month+'/'+entry.year)].filter(Boolean).join(' · ')}));
+    const membership=data.audit.map(entry=>({at:entry.created_at,title:entry.enabled?'Accesso abilitato':'Accesso revocato',detail:'Romolo · '+(data.users.find(u=>u.id===entry.target_id)?.email||entry.target_id)+' · '+entry.language.toUpperCase()}));
+    const events=[...operational,...membership].sort((a,b)=>new Date(b.at)-new Date(a.at));
+    $('#auditRows').innerHTML=events.length?events.map(entry=>'<div class="audit-entry"><strong>'+escape(entry.title)+'</strong><div>'+escape(entry.detail)+'</div><small>'+escape(date(entry.at))+'</small></div>').join(''):'<p class="empty">Nessuna attività registrata.</p>';
     renderUsers();
     document.querySelectorAll('[data-console]').forEach(link => link.href = consoleBase + link.dataset.console);
     $('#gate').hidden = true; $('#dashboard').hidden = false;
@@ -128,6 +135,34 @@
     try { await navigator.clipboard.writeText(value); notice('Copiato negli appunti.'); }
     catch { notice('Copia non disponibile: seleziona e copia manualmente il testo.'); }
   }
+  function openUserOperation(action,user=null) {
+    if(busy) return;
+    userOperation={action,userId:user?.id};
+    const form=$('#userForm');form.reset();$('#userError').textContent='';
+    $('#userTitle').textContent=action==='create_user'?'Aggiungi utente':action==='delete_user'?'Elimina account':'Reimposta password';
+    $('#userHelp').textContent=action==='delete_user'?'Eliminazione definitiva di '+user.email+'. I fogli condivisi restano invariati.':action==='create_user'?'L’account viene creato senza gruppi. Abilitali dopo la creazione.':'Imposta una nuova password per '+user.email+'. Comunicala personalmente all’utente.';
+    $('#emailLabel').hidden=action!=='create_user';form.elements.email.required=action==='create_user';
+    $('#passwordLabel').hidden=action==='delete_user';form.elements.password.required=action!=='delete_user';
+    $('#confirmEmailLabel').hidden=action!=='delete_user';form.elements.confirmEmail.required=action==='delete_user';
+    $('#userDialog').showModal();
+  }
+  $('#createUser').addEventListener('click',()=>openUserOperation('create_user'));
+  $('#cancelUser').addEventListener('click',()=>{if(!busy)$('#userDialog').close();});
+  $('#userDialog').addEventListener('close',()=>{$('#userForm').reset();userOperation=null;});
+  $('#userDialog').addEventListener('cancel',event=>{if(busy)event.preventDefault();});
+  $('#userRows').addEventListener('click',event=>{
+    const button=event.target.closest('[data-operation]');if(!button||!snapshot)return;
+    const user=snapshot.users.find(u=>u.id===button.dataset.target);if(user&&user.id!==OWNER_ID)openUserOperation(button.dataset.operation,user);
+  });
+  $('#userForm').addEventListener('submit',async event=>{
+    event.preventDefault();if(busy||!userOperation)return;
+    const revision=epoch,form=event.currentTarget;
+    const body={...userOperation,email:form.elements.email.value.trim(),password:form.elements.password.value,confirmEmail:form.elements.confirmEmail.value.trim()};
+    busy=true;form.querySelectorAll('button').forEach(b=>b.disabled=true);$('#refresh').disabled=true;
+    try {const result=await api(body);if(revision!==epoch)return;form.reset();$('#userDialog').close();busy=false;await refresh();if(snapshot)notice(result.warning||'Operazione completata.');}
+    catch(error){if(revision===epoch)$('#userError').textContent=error.message;}
+    finally{body.password='';busy=false;form.querySelectorAll('button').forEach(b=>b.disabled=false);$('#refresh').disabled=false;}
+  });
   $('#refresh').addEventListener('click',refresh);
   $('#retryGate').addEventListener('click',refresh);
   $('#adminLogout').addEventListener('click',signOut);
@@ -163,7 +198,7 @@
   });
   $('#downloadReport').addEventListener('click',() => {
     if (!snapshot) return;
-    const {users,memberships,audit,...diagnostics} = snapshot;
+    const {users,memberships,audit,activity,...diagnostics} = snapshot;
     const blob = new Blob([JSON.stringify({app:'Foglio di preghiera',version,project,...diagnostics},null,2)],{type:'application/json'});
     const url = URL.createObjectURL(blob); const a = document.createElement('a');
     a.href=url; a.download=`manutenzione-${new Date().toISOString().slice(0,10)}.json`; a.click(); setTimeout(()=>URL.revokeObjectURL(url),1000);
