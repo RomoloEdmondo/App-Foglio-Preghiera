@@ -29,6 +29,8 @@ const EXPORT_READING_BOLD_FONT = `bold ${EXPORT_READING_FONT_SIZE}px Arial`;
 
 const monthSelect = document.querySelector("#monthSelect");
 const yearInput = document.querySelector("#yearInput");
+const monthBackButton = document.querySelector("#monthBackButton");
+const monthForwardButton = document.querySelector("#monthForwardButton");
 const todayButton = document.querySelector("#todayButton");
 const shareMonthButton = document.querySelector("#shareMonthButton");
 const printButton = document.querySelector("#printButton");
@@ -87,6 +89,7 @@ let navigationBusy = false;
 
 function setMonthBusy(busy) {
   navigationBusy = busy;
+  updateMonthNavigation();
   for (const control of [monthSelect, yearInput, todayButton, previousMonthButton, saveButton, boldButton, printButton, imageButton, wordButton, shareMonthButton]) control.disabled = busy || (control === shareMonthButton && !sharedMonthFiles.length);
   daysBody.querySelectorAll('.editable').forEach(field => { field.contentEditable = String(!busy); });
 }
@@ -444,6 +447,8 @@ function initControls() {
   boldButton.addEventListener("mousedown", (event) => event.preventDefault());
   boldButton.addEventListener("click", applyBoldToSelection);
   todayButton.addEventListener("click", goToCurrentMonth);
+  monthBackButton.addEventListener("click", () => stepMonth(-1));
+  monthForwardButton.addEventListener("click", () => stepMonth(1));
   printButton.addEventListener("click", exportPdf);
   shareMonthButton.addEventListener("click", shareMonthDirect);
   imageButton.addEventListener("click", exportImage);
@@ -521,6 +526,16 @@ async function changeMonth(year, month) {
   } finally {
     setMonthBusy(false);
   }
+}
+
+function updateMonthNavigation() {
+  monthBackButton.disabled = navigationBusy || (state.year === 1900 && state.month === 0);
+  monthForwardButton.disabled = navigationBusy || (state.year === 2200 && state.month === 11);
+}
+
+function stepMonth(direction) {
+  const index = state.year * 12 + state.month + direction;
+  return changeMonth(Math.floor(index / 12), index % 12);
 }
 
 function goToCurrentMonth() {
@@ -611,6 +626,7 @@ async function importPreviousMonthSubjects() {
 }
 
 function render() {
+  updateMonthNavigation();
   monthSelect.value = String(state.month);
   yearInput.value = String(state.year);
   sheetTitle.textContent = monthTitle();

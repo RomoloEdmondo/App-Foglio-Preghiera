@@ -126,6 +126,10 @@
                 </span>
                 <span>{{today}}</span>
               </button>
+              <div class="month-navigation" role="group" aria-label="{{monthNavigation}}">
+                <button id="monthBackButton" type="button" title="{{previousMonth}}" aria-label="{{previousMonth}}"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m14 6-6 6 6 6"/></svg></span></button>
+                <button id="monthForwardButton" type="button" title="{{nextMonth}}" aria-label="{{nextMonth}}"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m10 6 6 6-6 6"/></svg></span></button>
+              </div>
             </div>
 
             <div class="toolbar-group action-group" aria-label="{{actions}}">

@@ -20,12 +20,12 @@
     <meta name="twitter:title" content="Gebetsplan" />
     <meta name="twitter:description" content="Monatlicher Kalender mit Gebetsanliegen." />
     <meta name="twitter:image" content="../assets/logo_app.png" />
-    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=fe9cc81a5670" />
-    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=fe9cc81a5670" />
-    <link rel="shortcut icon" href="../assets/favicon.ico?v=fe9cc81a5670" />
-    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=fe9cc81a5670" />
+    <link rel="icon" type="image/png" sizes="1024x1024" href="../assets/logo-italiano.png?v=33348c077dfb" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/logo-italiano-32.png?v=33348c077dfb" />
+    <link rel="shortcut icon" href="../assets/favicon.ico?v=33348c077dfb" />
+    <link rel="apple-touch-icon" href="../assets/logo_app.png?v=33348c077dfb" />
     <link rel="manifest" href="site.webmanifest" />
-    <link rel="stylesheet" href="../styles.css?v=fe9cc81a5670" />
+    <link rel="stylesheet" href="../styles.css?v=33348c077dfb" />
   </head>
   <body>
     <section class="login-landing" id="loginLanding">
@@ -126,6 +126,10 @@
                 </span>
                 <span>Heute</span>
               </button>
+              <div class="month-navigation" role="group" aria-label="Monatsnavigation">
+                <button id="monthBackButton" type="button" title="Vorheriger Monat" aria-label="Vorheriger Monat"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m14 6-6 6 6 6"/></svg></span></button>
+                <button id="monthForwardButton" type="button" title="Nächster Monat" aria-label="Nächster Monat"><span class="icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m10 6 6 6-6 6"/></svg></span></button>
+              </div>
             </div>
 
             <div class="toolbar-group action-group" aria-label="Aktionen">
@@ -237,11 +241,11 @@
       <div class="preview-canvas"><img id="previewImage" alt="Monatlicher Gebetsplan" hidden /></div>
     </dialog>
 
-    <script src="config.js?v=fe9cc81a5670"></script>
+    <script src="config.js?v=33348c077dfb"></script>
     <script src="../supabase-config.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.116.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-    <script src="../assets/vendor/docx.js?v=fe9cc81a5670"></script>
-    <script src="../app.js?v=fe9cc81a5670"></script>
+    <script src="../assets/vendor/docx.js?v=33348c077dfb"></script>
+    <script src="../app.js?v=33348c077dfb"></script>
   </body>
 </html>

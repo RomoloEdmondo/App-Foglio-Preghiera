@@ -88,7 +88,10 @@
     "shareFilesFallback": "Das Teilen von Anhängen ist auf diesem Gerät nicht verfügbar. Lade beide Dateien herunter und füge sie deiner E-Mail hinzu.",
     "shareFilesError": "Die Dateien konnten nicht erstellt werden. Bitte schließen und erneut versuchen.",
     "downloadPdf": "PDF herunterladen",
-    "admin": "Administration"
+    "admin": "Administration",
+    "monthNavigation": "Monatsnavigation",
+    "previousMonth": "Vorheriger Monat",
+    "nextMonth": "Nächster Monat"
   },
   "months": [
     "Januar",

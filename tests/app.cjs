@@ -74,6 +74,19 @@ const server = createServer((req, res) => {
     assert.equal(await landing.locator('a[lang="de"]').getAttribute('href'), 'de/');
     await landing.screenshot({ path: resolve(output, 'language-choice-mobile.png'), fullPage: true });
 
+    for (const lang of ['it', 'de']) {
+      const nav = await open(lang);
+      await nav.evaluate(() => changeMonth(2026, 11));
+      await nav.locator('#monthForwardButton').click();
+      await nav.waitForFunction(() => !navigationBusy && state.year === 2027 && state.month === 0);
+      await nav.locator('#monthBackButton').click();
+      await nav.waitForFunction(() => !navigationBusy && state.year === 2026 && state.month === 11);
+      await nav.evaluate(() => changeMonth(1900, 0));
+      assert(await nav.locator('#monthBackButton').isDisabled());
+      await nav.evaluate(() => changeMonth(2200, 11));
+      assert(await nav.locator('#monthForwardButton').isDisabled());
+      await nav.close();
+    }
     const de = await open('de');
     await de.locator('#appShell').waitFor({ state: 'visible' });
     assert(await de.locator('#languageLink').isVisible());
