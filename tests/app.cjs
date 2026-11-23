@@ -241,6 +241,48 @@ const server = createServer((req, res) => {
         }, key);
         assert.equal(await multiline.locator('[data-key="' + key + '"]').first().innerText(), 'Salmo 23\nGiovanni 3\n\nRomani 8');
       }
+      // Legacy saved values can contain newlines inside or between bold runs.
+      // Verify both rendering and export without dispatching input or repairing text.
+      const cases = [
+        '<strong>Rossi Mario</strong>: prima richiesta.\n<strong>Bianchi Luca</strong>: seconda richiesta.',
+        '<strong>Rossi Mario\nBianchi Luca</strong>',
+        '<strong>Rossi Mario</strong>\r\n<strong>Bianchi Luca</strong>',
+        '<strong>Rossi Mario</strong>\r<strong>Bianchi Luca</strong>',
+        '<strong>Rossi Mario</strong><div><strong>Bianchi Luca</strong></div>',
+        '<div><strong>Rossi Mario</strong></div><div><strong>Bianchi Luca</strong></div>',
+        '<strong>Rossi Mario</strong><br><strong>Bianchi Luca</strong>',
+        '<strong>Rossi Mario</strong>\n\n<strong>Bianchi Luca</strong>',
+        '<strong>Rossi Mario</strong><br><br><strong>Bianchi Luca</strong>',
+        '<strong>Rossi Mario\n\nBianchi Luca</strong>'
+      ];
+      for (const [index, html] of cases.entries()) {
+        const result = await multiline.evaluate(html => {
+          state.days[1] = {subject: html, reading: html};
+          render();
+          const canonical = normalizeEditableHtml(html);
+          const paragraphs = richHtmlToParagraphs(html);
+          const ctx = document.createElement('canvas').getContext('2d');
+          return {
+            visible: document.querySelector('[data-key="subject"]').innerText,
+            lines: wrapRichText(ctx, html, 10000, '20px Arial', 'bold 20px Arial').map(line => line.map(run => run.text).join('')),
+            bold: paragraphs.filter(p => p.length).map(p => p[0].bold),
+            stable: canonical === normalizeEditableHtml(canonical)
+          };
+        }, html);
+        const lineCount = index >= 7 ? 3 : 2;
+        assert.equal(result.lines.length, lineCount, 'Export preserves explicit newlines, including blank lines');
+        assert.equal(result.visible.split('\n').length, lineCount, 'Editor and export agree');
+        assert(result.lines[0].startsWith('Rossi Mario'));
+        assert(result.lines.at(-1).startsWith('Bianchi Luca'));
+        assert(result.bold.every(Boolean), 'Both names keep bold formatting');
+        assert(result.stable, 'Normalization remains stable across reloads');
+      }
+      if (lang === 'it') {
+        await multiline.evaluate(html => { state.days[1]={subject:html}; render(); }, cases[0]);
+        const exported = multiline.waitForEvent('download');
+        await multiline.locator('#printButton').click();
+        await (await exported).saveAs(resolve(output, 'multiline-regression.pdf'));
+      }
       await multiline.close();
     }
     for (const lang of ['it', 'de']) {

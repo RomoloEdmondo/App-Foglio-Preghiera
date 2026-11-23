@@ -228,7 +228,11 @@ function escapeHtml(text) {
 function serializeEditableNode(node, bold = false) {
   if (node.nodeType === Node.TEXT_NODE) {
     const text = node.textContent.replace(/\u00a0/g, " ");
-    return bold ? `<strong>${escapeHtml(text)}</strong>` : escapeHtml(text);
+    // The editor uses pre-wrap: literal newlines are real line breaks, including
+    // in older saved values that mix plain text with bold HTML.
+    return text.split(/\r\n|\r|\n/)
+      .map(line => bold && line ? `<strong>${escapeHtml(line)}</strong>` : escapeHtml(line))
+      .join("<br>");
   }
 
   if (node.nodeType !== Node.ELEMENT_NODE) {
@@ -270,7 +274,7 @@ function normalizeEditableHtml(value) {
   const hasAllowedMarkup = /<\/?(strong|b|br|div|p)\b/i.test(text);
 
   if (!hasAllowedMarkup) {
-    return escapeHtml(text).replace(/\r?\n/g, "<br>");
+    return escapeHtml(text).replace(/\r\n|\r|\n/g, "<br>");
   }
 
   const container = document.createElement("div");
@@ -1293,9 +1297,7 @@ function richHtmlToParagraphs(value) {
   }
 
   function addBreak() {
-    if (currentParagraph().length || paragraphs.length === 1) {
-      paragraphs.push([]);
-    }
+    paragraphs.push([]);
   }
 
   function walk(node, bold = false) {
